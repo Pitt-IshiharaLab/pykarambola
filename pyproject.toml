@@ -15,6 +15,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest", "scikit-image"]
 accel = ["cython>=3.0"]
+glb = ["trimesh"]
 
 [tool.setuptools.packages.find]
 include = ["pykarambola*"]

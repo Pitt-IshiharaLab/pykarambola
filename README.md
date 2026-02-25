@@ -12,6 +12,17 @@ Compared to the original C++ karambola, this Python port adds:
 - **High-level API** — `minkowski_functionals()` accepts NumPy arrays and returns a plain dict, making it easy to integrate into pipelines without dealing with the lower-level triangulation types.
 - **Label-image API** — `minkowski_functionals_from_label_image()` extracts surfaces from a 3D integer label image via marching cubes and computes functionals for every label in one call.
 
+## Requirements
+
+- Python ≥ 3.9
+- [NumPy](https://numpy.org/)
+- [SciPy](https://scipy.org/)
+
+**Optional:**
+- [Cython](https://cython.org/) ≥ 3.0 — compiled C acceleration (`pip install "pykarambola[accel]"`)
+- [scikit-image](https://scikit-image.org/) — label-image API (`pip install "pykarambola[dev]"`)
+- [trimesh](https://trimesh.org/) — GLB/glTF file support (`pip install "pykarambola[glb]"`)
+
 ## Installation
 
 ```bash
@@ -33,7 +44,7 @@ pip install "pykarambola[dev]"
 GLB/glTF support requires [trimesh](https://trimesh.org/):
 
 ```bash
-pip install trimesh
+pip install "pykarambola[glb]"
 ```
 
 ## High-level API
