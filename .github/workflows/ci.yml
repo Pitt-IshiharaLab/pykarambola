@@ -27,3 +27,26 @@ jobs:
 
       - name: Run tests
         run: pytest tests/
+
+  notify-failure:
+    needs: [test]
+    runs-on: ubuntu-latest
+    if: failure() && github.event_name == 'push'
+    steps:
+      - name: Notify Slack on CI failure
+        uses: slackapi/slack-github-action@v2
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": ":red_circle: *CI failed on `main`*\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View failed run>"
+                  }
+                }
+              ]
+            }
