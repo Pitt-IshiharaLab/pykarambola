@@ -1,0 +1,10 @@
+*.pyc
+__pycache__/
+*.egg-info/
+.ipynb_checkpoints/
+build/
+dist/
+.DS_Store
+*.so
+*.pyd
+pykarambola/_accel*.c
