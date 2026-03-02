@@ -297,7 +297,24 @@ def minkowski_functionals_from_label_image(
             faces = faces[:, ::-1]
 
         # Determine center for this label
-        if isinstance(center, str) and center == 'centroid':
+        if isinstance(center, str) and center == 'centroid_mesh':
+            # Volume-weighted centroid via the divergence theorem.
+            # Runs after the face-flip so normals are guaranteed outward.
+            v0c = verts[faces[:, 0]]
+            v1c = verts[faces[:, 1]]
+            v2c = verts[faces[:, 2]]
+            d = np.einsum('ij,ij->i', v0c, np.cross(v1c - v0c, v2c - v0c))
+            d_sum = d.sum()
+            if abs(d_sum) < 1e-12:
+                warnings.warn(
+                    f"Mesh centroid denominator near zero for label {lab}; "
+                    "falling back to origin reference.",
+                    stacklevel=2,
+                )
+                label_center = np.zeros(3)
+            else:
+                label_center = np.einsum('i,ij->j', d, v0c + v1c + v2c) / (4.0 * d_sum)
+        elif isinstance(center, str) and center == 'centroid_voxel':
             voxel_coords = np.argwhere(label_image == lab)  # (N, 3)
             centroid = voxel_coords.mean(axis=0) * np.array(spacing)
             label_center = centroid
