@@ -4,6 +4,8 @@ All Minkowski functional calculations — vectorized with NumPy.
 Each function returns a dict mapping label -> MinkValResult.
 """
 
+import warnings
+
 import numpy as np
 from .triangulation import LABEL_UNASSIGNED, NEIGHBOUR_UNASSIGNED
 from .results import MinkValResult
@@ -37,9 +39,22 @@ def _default_rank4():
     return MinkValResult(result=SymmetricRank4Tensor())
 
 
-def get_ref_vec(label, w_scalar, w_vector):
-    """Compute reference vector (centroid) = w_vector / w_scalar for a label."""
-    return w_vector[label].result / w_scalar[label].result
+def get_ref_vec(label, w_scalar, w_vector, eps=1e-12):
+    """Compute reference vector (centroid) = w_vector / w_scalar for a label.
+
+    Falls back to the origin and emits a warning when the scalar denominator
+    is near zero (e.g. open surfaces, flat surfaces, or toroidal shapes where
+    the Euler characteristic is zero).
+    """
+    s = w_scalar[label].result
+    if abs(s) < eps:
+        warnings.warn(
+            f"Scalar denominator near zero for label {label}; "
+            "falling back to origin reference.",
+            stacklevel=3,
+        )
+        return np.zeros(3)
+    return w_vector[label].result / s
 
 
 # ============================================================================
@@ -92,12 +107,26 @@ def calculate_w300(surface):
     # w3_part = (2*pi * angle / angle_sum) - angle
     # Each vertex contributes w3_part / 3.0 to the label of the triangle
 
+    # Guard: vertices with zero angle sum (isolated or fully degenerate triangles)
+    # contribute nothing to the Gaussian curvature integral.
+    if np.any(surface._vertex_angle_sums == 0):
+        warnings.warn(
+            "Mesh contains vertices with zero angle sum (isolated or degenerate "
+            "triangles); their Gaussian curvature contribution is set to zero.",
+            stacklevel=2,
+        )
+
     per_tri = np.zeros(F, dtype=np.float64)
     for j in range(3):
         vert_idx = surface._faces[:, j]  # (F,)
         angle = surface._vertex_angles[:, j]  # (F,)
         angle_sum = surface._vertex_angle_sums[vert_idx]  # (F,)
-        w3_part = 2.0 * np.pi * (angle / angle_sum) - angle
+        safe_angle_sum = np.where(angle_sum > 0, angle_sum, 1.0)
+        w3_part = np.where(
+            angle_sum > 0,
+            2.0 * np.pi * (angle / safe_angle_sum) - angle,
+            0.0,
+        )
         per_tri += w3_part / 3.0
 
     results = {}
@@ -186,7 +215,12 @@ def calculate_w310(surface):
         angle = surface._vertex_angles[:, j]
         angle_sum = surface._vertex_angle_sums[vert_idx]
         pos = surface._verts[vert_idx]  # (F, 3)
-        w310_part = (2.0 * np.pi * (angle / angle_sum) - angle) / 3.0  # (F,)
+        safe_angle_sum = np.where(angle_sum > 0, angle_sum, 1.0)
+        w310_part = np.where(
+            angle_sum > 0,
+            (2.0 * np.pi * (angle / safe_angle_sum) - angle) / 3.0,
+            0.0,
+        )
         result_vals += w310_part[:, None] * pos
 
     results = {}
@@ -384,7 +418,12 @@ def calculate_w320(surface, w300=None, w310=None):
             vert_idx = surface._faces[tri_indices, j]
             angle = surface._vertex_angles[tri_indices, j]
             angle_sum = surface._vertex_angle_sums[vert_idx]
-            angle_part = (2.0 * np.pi * (angle / angle_sum) - angle) / 3.0
+            safe_angle_sum = np.where(angle_sum > 0, angle_sum, 1.0)
+            angle_part = np.where(
+                angle_sum > 0,
+                (2.0 * np.pi * (angle / safe_angle_sum) - angle) / 3.0,
+                0.0,
+            )
             c = surface._verts[vert_idx] - ref_vec
 
             for i_idx, j_idx in _SYM_PAIRS:
