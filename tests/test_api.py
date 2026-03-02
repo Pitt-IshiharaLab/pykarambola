@@ -172,6 +172,16 @@ class TestCenterOptions:
         for name in ['w010', 'w110', 'w210', 'w310']:
             np.testing.assert_allclose(result[name], [0, 0, 0], atol=1e-3)
 
+    def test_center_wrong_shape_2d_raises(self):
+        """#46: center with shape (2,) raises ValueError with helpful message."""
+        with pytest.raises(ValueError, match="center must be a \\(3,\\) array"):
+            minkowski_functionals(self.verts, self.faces, center=[1.0, 2.0])
+
+    def test_center_wrong_shape_2d_array_raises(self):
+        """#46: center with shape (1, 3) raises ValueError."""
+        with pytest.raises(ValueError, match="center must be a \\(3,\\) array"):
+            minkowski_functionals(self.verts, self.faces, center=[[1.0, 2.0, 3.0]])
+
 
 class TestComputeOptions:
 
@@ -194,6 +204,16 @@ class TestComputeOptions:
         result = minkowski_functionals(self.verts, self.faces, compute=['w000', 'w100'])
         assert set(result.keys()) == {'w000', 'w100'}
 
+    def test_compute_unknown_name_raises(self):
+        """#45: unknown name in compute list raises ValueError."""
+        with pytest.raises(ValueError, match="Unknown compute names"):
+            minkowski_functionals(self.verts, self.faces, compute=['w000', 'typo'])
+
+    def test_compute_all_unknown_raises(self):
+        """#45: entirely unrecognised list raises ValueError."""
+        with pytest.raises(ValueError, match="Unknown compute names"):
+            minkowski_functionals(self.verts, self.faces, compute=['bad_name'])
+
     def test_compute_single_tensor(self):
         result = minkowski_functionals(self.verts, self.faces, compute=['w102'])
         assert 'w102' in result
@@ -201,7 +221,6 @@ class TestComputeOptions:
         assert 'w102_eigvecs' in result
 
 
-<<<<<<< HEAD
 class TestNumericSafety:
     """Zero-guard fixes: #42 get_ref_vec, #43 angle_sum==0, #49 toroidal w300=0."""
 
@@ -323,8 +342,6 @@ class TestComputeEigensystems:
             assert f'{name}_eigvecs' in result
 
     def test_single_rank2_tensor_omits_eigensystem(self):
-        # Requesting a single rank-2 tensor with compute_eigensystems=False
-        # should return the tensor matrix but suppress its eigvals/eigvecs.
         result = minkowski_functionals(
             self.verts, self.faces,
             compute=['w102'],
@@ -336,9 +353,6 @@ class TestComputeEigensystems:
         assert 'w102_eigvecs' not in result
 
     def test_beta_with_false_raises_value_error(self):
-        # 'beta' is not yet implemented as a functional, but the guard fires
-        # proactively as a forward-compatibility check so that once beta lands
-        # it cannot be requested without eigensystems.
         with pytest.raises(ValueError, match="compute_eigensystems=True"):
             minkowski_functionals(
                 self.verts, self.faces,
@@ -347,13 +361,39 @@ class TestComputeEigensystems:
             )
 
     def test_beta_suffix_with_false_raises_value_error(self):
-        # Same forward-compatibility guard for any *_beta quantity.
         with pytest.raises(ValueError, match="compute_eigensystems=True"):
             minkowski_functionals(
                 self.verts, self.faces,
                 compute=['w020', 'w020_beta'],
                 compute_eigensystems=False,
             )
+
+
+class TestReturnTypeAsymmetry:
+    """#48: flat dict vs nested dict depending on labels parameter."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        self.verts, self.faces = _box_mesh(2.0, 3.0, 4.0)
+
+    def test_no_labels_returns_flat_dict(self):
+        result = minkowski_functionals(self.verts, self.faces, labels=None)
+        assert 'w000' in result
+
+    def test_labels_provided_returns_nested_dict(self):
+        labels = np.zeros(len(self.faces), dtype=int)
+        result = minkowski_functionals(self.verts, self.faces, labels=labels)
+        assert 0 in result
+        assert 'w000' in result[0]
+        # Flat key access does not work on the nested result
+        assert 'w000' not in result
+
+    def test_labels_single_value_still_nested(self):
+        """Even one unique label → nested, not flat."""
+        labels = np.ones(len(self.faces), dtype=int)
+        result = minkowski_functionals(self.verts, self.faces, labels=labels)
+        assert 1 in result
+        assert isinstance(result[1], dict)
 
 
 class TestMultiLabel:
@@ -510,3 +550,21 @@ class TestLabelImage:
         for name in ['w020', 'w120', 'w220', 'w320', 'w102', 'w202']:
             assert f'{name}_eigvals' not in result[1]
             assert f'{name}_eigvecs' not in result[1]
+
+    def test_float_label_image_warns(self):
+        """#52: float32 label image triggers a UserWarning and still works."""
+        vol = _voxel_box((20, 20, 20), np.s_[5:15, 5:15, 5:15]).astype(np.float32)
+        with pytest.warns(UserWarning, match="dtype"):
+            result = minkowski_functionals_from_label_image(vol)
+        assert 1 in result
+        assert 'w000' in result[1]
+
+    def test_integer_label_image_no_dtype_warning(self):
+        """#52: integer label image produces no dtype warning."""
+        import warnings
+        vol = _voxel_box((20, 20, 20), np.s_[5:15, 5:15, 5:15])  # int32
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            minkowski_functionals_from_label_image(vol)
+        dtype_warnings = [w for w in caught if "dtype" in str(w.message).lower()]
+        assert len(dtype_warnings) == 0
