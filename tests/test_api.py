@@ -285,6 +285,76 @@ class TestNumericSafety:
             assert np.isfinite(result[0].result[i_idx, j_idx])
 
 
+class TestComputeEigensystems:
+
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        self.verts, self.faces = _box_mesh(2.0, 3.0, 4.0)
+
+    def test_false_omits_eigvals_and_eigvecs(self):
+        result = minkowski_functionals(
+            self.verts, self.faces, compute_eigensystems=False,
+        )
+        for name in ['w020', 'w120', 'w220', 'w320', 'w102', 'w202']:
+            assert f'{name}_eigvals' not in result
+            assert f'{name}_eigvecs' not in result
+
+    def test_false_retains_tensor_values(self):
+        result = minkowski_functionals(
+            self.verts, self.faces, compute_eigensystems=False,
+        )
+        for name in ['w020', 'w120', 'w220', 'w320', 'w102', 'w202']:
+            assert name in result
+            assert result[name].shape == (3, 3)
+
+    def test_false_works_with_scalar_only_compute(self):
+        result = minkowski_functionals(
+            self.verts, self.faces,
+            compute=['w000', 'w100', 'w200', 'w300'],
+            compute_eigensystems=False,
+        )
+        assert set(result.keys()) == {'w000', 'w100', 'w200', 'w300'}
+
+    def test_true_default_includes_eigvals_and_eigvecs(self):
+        result = minkowski_functionals(self.verts, self.faces)
+        for name in ['w020', 'w120', 'w220', 'w320', 'w102', 'w202']:
+            assert f'{name}_eigvals' in result
+            assert f'{name}_eigvecs' in result
+
+    def test_single_rank2_tensor_omits_eigensystem(self):
+        # Requesting a single rank-2 tensor with compute_eigensystems=False
+        # should return the tensor matrix but suppress its eigvals/eigvecs.
+        result = minkowski_functionals(
+            self.verts, self.faces,
+            compute=['w102'],
+            compute_eigensystems=False,
+        )
+        assert 'w102' in result
+        assert result['w102'].shape == (3, 3)
+        assert 'w102_eigvals' not in result
+        assert 'w102_eigvecs' not in result
+
+    def test_beta_with_false_raises_value_error(self):
+        # 'beta' is not yet implemented as a functional, but the guard fires
+        # proactively as a forward-compatibility check so that once beta lands
+        # it cannot be requested without eigensystems.
+        with pytest.raises(ValueError, match="compute_eigensystems=True"):
+            minkowski_functionals(
+                self.verts, self.faces,
+                compute=['w020', 'beta'],
+                compute_eigensystems=False,
+            )
+
+    def test_beta_suffix_with_false_raises_value_error(self):
+        # Same forward-compatibility guard for any *_beta quantity.
+        with pytest.raises(ValueError, match="compute_eigensystems=True"):
+            minkowski_functionals(
+                self.verts, self.faces,
+                compute=['w020', 'w020_beta'],
+                compute_eigensystems=False,
+            )
+
+
 class TestMultiLabel:
 
     def test_labels_returns_per_label_dict(self):
@@ -347,6 +417,23 @@ class TestLabelImage:
         # Area (w100) scales by 2^2 = 4
         assert r2[1]['w100'] == pytest.approx(4.0 * r1[1]['w100'], rel=0.01)
 
+    def test_anisotropic_spacing_centroid(self):
+        # With non-isotropic spacing, both centroid methods should still centre a
+        # symmetric box (vectors near zero) and volume should reflect physical size.
+        vol = _voxel_box((20, 20, 20), np.s_[5:15, 5:15, 5:15])
+        spacing = (1.0, 2.0, 3.0)
+        for method in ('centroid_mesh', 'centroid_voxel'):
+            result = minkowski_functionals_from_label_image(vol, spacing=spacing,
+                                                            center=method)
+            for name in ['w010', 'w110', 'w210', 'w310']:
+                np.testing.assert_allclose(
+                    result[1][name], [0, 0, 0], atol=0.5,
+                    err_msg=f"{name} should be near zero with {method} and anisotropic spacing",
+                )
+        # Volume should equal 10*10*10 * sz*sy*sx = 1000 * 6
+        result = minkowski_functionals_from_label_image(vol, spacing=spacing)
+        assert result[1]['w000'] == pytest.approx(6000.0, rel=0.05)
+
     def test_multi_label(self):
         vol = np.zeros((30, 30, 30), dtype=np.int32)
         vol[2:8, 2:8, 2:8] = 1
@@ -361,11 +448,44 @@ class TestLabelImage:
     def test_centroid_default_symmetric_vectors(self):
         # Symmetric box → vectors should be near zero with centroid centering
         vol = _voxel_box((20, 20, 20), np.s_[5:15, 5:15, 5:15])
-        result = minkowski_functionals_from_label_image(vol, center='centroid')
+        result = minkowski_functionals_from_label_image(vol, center='centroid_mesh')
         for name in ['w010', 'w110', 'w210', 'w310']:
             np.testing.assert_allclose(
                 result[1][name], [0, 0, 0], atol=0.5,
                 err_msg=f"{name} should be near zero for centered symmetric box",
+            )
+
+    def test_ascent_gives_positive_signed_vol(self):
+        # gradient_direction='ascent' should produce outward normals (positive signed vol)
+        from skimage.measure import marching_cubes
+        vol = _voxel_box((20, 20, 20), np.s_[5:15, 5:15, 5:15])
+        mask = (vol == 1).astype(np.float64)
+        verts, faces, _, _ = marching_cubes(
+            mask, level=0.5, spacing=(1.0, 1.0, 1.0), gradient_direction='ascent',
+        )
+        v0 = verts[faces[:, 0]]
+        cross = np.cross(verts[faces[:, 1]] - v0, verts[faces[:, 2]] - v0)
+        signed_vol = np.sum(v0 * cross) / 6.0
+        assert signed_vol > 0, f"Expected positive signed volume, got {signed_vol}"
+
+    def test_centroid_mesh_offcenter_box_near_zero_vectors(self):
+        # Off-center symmetric box: mesh-volume centroid should centre the functionals
+        vol = _voxel_box((30, 30, 30), np.s_[10:20, 10:20, 10:20])
+        result = minkowski_functionals_from_label_image(vol, center='centroid_mesh')
+        for name in ['w010', 'w110', 'w210', 'w310']:
+            np.testing.assert_allclose(
+                result[1][name], [0, 0, 0], atol=0.5,
+                err_msg=f"{name} should be near zero with centroid_mesh",
+            )
+
+    def test_centroid_voxel_offcenter_box_near_zero_vectors(self):
+        # Off-center symmetric box: voxel centroid should also centre the functionals
+        vol = _voxel_box((30, 30, 30), np.s_[10:20, 10:20, 10:20])
+        result = minkowski_functionals_from_label_image(vol, center='centroid_voxel')
+        for name in ['w010', 'w110', 'w210', 'w310']:
+            np.testing.assert_allclose(
+                result[1][name], [0, 0, 0], atol=0.5,
+                err_msg=f"{name} should be near zero with centroid_voxel",
             )
 
     def test_center_none(self):
@@ -380,3 +500,12 @@ class TestLabelImage:
         vol = np.zeros((10, 10, 10), dtype=np.int32)
         result = minkowski_functionals_from_label_image(vol)
         assert len(result) == 0
+
+    def test_compute_eigensystems_false_threads_through(self):
+        vol = _voxel_box((20, 20, 20), np.s_[5:15, 5:15, 5:15])
+        result = minkowski_functionals_from_label_image(
+            vol, compute_eigensystems=False,
+        )
+        for name in ['w020', 'w120', 'w220', 'w320', 'w102', 'w202']:
+            assert f'{name}_eigvals' not in result[1]
+            assert f'{name}_eigvecs' not in result[1]
