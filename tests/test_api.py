@@ -215,11 +215,12 @@ class TestNumericSafety:
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
-            result = get_ref_vec(0, w_scalar, w_vector)
+            result = get_ref_vec(0, w_scalar, w_vector, denominator_name='w300')
 
         assert len(w) == 1
         assert issubclass(w[0].category, UserWarning)
         assert "near zero" in str(w[0].message).lower()
+        assert "w300" in str(w[0].message)
         np.testing.assert_array_equal(result, [0.0, 0.0, 0.0])
 
     def test_get_ref_vec_nonzero_scalar_returns_correct_value(self):
@@ -232,11 +233,18 @@ class TestNumericSafety:
         result = get_ref_vec(0, w_scalar, w_vector)
         np.testing.assert_array_almost_equal(result, [2.0, 3.0, 4.0])
 
-    def test_w300_zero_angle_sum_no_nan_and_warns(self):
-        """#43: calculate_w300 handles a vertex with angle_sum==0 without NaN/crash."""
+    @pytest.mark.parametrize("fn_name", [
+        "calculate_w300",
+        "calculate_w310",
+        "calculate_w320",
+    ])
+    def test_zero_angle_sum_no_nan_and_warns(self, fn_name):
+        """#43: w300/w310/w320 handle a vertex with angle_sum<=0 without NaN/crash and emit a warning."""
         import warnings
+        import pykarambola.minkowski as mink
         from pykarambola.triangulation import Triangulation
-        from pykarambola.minkowski import calculate_w300
+
+        fn = getattr(mink, fn_name)
 
         verts, faces = _box_mesh(2.0, 3.0, 4.0)
         surf = Triangulation.from_arrays(verts, faces)
@@ -244,23 +252,15 @@ class TestNumericSafety:
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
-            result = calculate_w300(surf)
+            result = fn(surf)
 
         assert any(issubclass(warning.category, UserWarning) for warning in w)
-        assert np.isfinite(result[0].result)
 
-    def test_w320_zero_angle_sum_no_nan(self):
-        """#43: calculate_w320 handles a vertex with angle_sum==0 without NaN/crash."""
-        from pykarambola.triangulation import Triangulation
-        from pykarambola.minkowski import calculate_w320
-
-        verts, faces = _box_mesh(2.0, 3.0, 4.0)
-        surf = Triangulation.from_arrays(verts, faces)
-        surf._vertex_angle_sums[0] = 0.0
-
-        result = calculate_w320(surf)
-        for i_idx, j_idx in [(0, 0), (1, 0), (1, 1), (2, 0), (2, 1), (2, 2)]:
-            assert np.isfinite(result[0].result[i_idx, j_idx])
+        from pykarambola.tensor import SymmetricMatrix3
+        for val in result.values():
+            r = val.result
+            arr = r.to_numpy() if isinstance(r, SymmetricMatrix3) else np.atleast_1d(r)
+            assert np.all(np.isfinite(arr.astype(float)))
 
     def test_w320_centroid_zero_w300_warns_and_falls_back(self):
         """#49: w320 with center='centroid' and w300==0 (torus) falls back to origin."""
