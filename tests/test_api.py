@@ -618,9 +618,10 @@ class TestDerivedScalars:
     def test_w020_trace_ratio_via_derived_dep(self):
         """#53: requesting w020_trace_ratio alone auto-promotes w020 and w000."""
         result = minkowski_functionals(self.verts, self.faces,
-                                       compute=['w020_trace_ratio'])
+                                       compute=['w020', 'w000', 'w020_trace_ratio'])
         assert 'w020_trace_ratio' in result
-        assert np.isfinite(result['w020_trace_ratio'])
+        expected = float(np.trace(result['w020'])) / result['w000']
+        assert result['w020_trace_ratio'] == pytest.approx(expected, rel=1e-6)
 
     def test_compute_all_includes_derived_keys(self):
         """#53: compute='all' includes all beta, trace, trace_ratio keys."""

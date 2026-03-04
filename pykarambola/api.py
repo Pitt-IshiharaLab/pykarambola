@@ -48,6 +48,12 @@ _DERIVED_DEPS = {
 
 _ALL = _STANDARD | _EXTRA | set(_DERIVED_DEPS.keys())
 
+# Denominator scalar for each wX20 trace ratio (wX20 family only)
+_TRACE_DENOM = {
+    'w020': 'w000', 'w120': 'w100',
+    'w220': 'w200', 'w320': 'w300',
+}
+
 
 def _extract_result(mink_result):
     """Convert a MinkValResult to a plain numpy value."""
@@ -298,10 +304,6 @@ def minkowski_functionals(verts, faces, labels=None, center=None, compute='stand
                     out[beta_key] = float(abs_eigs.min()) / max_eig
 
         # Traces and trace ratios
-        _TRACE_DENOM = {
-            'w020': 'w000', 'w120': 'w100',
-            'w220': 'w200', 'w320': 'w300',
-        }
         for tensor_name in _RANK2:
             trace_key = f'{tensor_name}_trace'
             ratio_key = f'{tensor_name}_trace_ratio'
