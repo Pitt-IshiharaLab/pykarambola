@@ -127,14 +127,6 @@ def minkowski_functionals(verts, faces, labels=None, center=None, compute='stand
                 f"Valid names: {sorted(_ALL)}"
             )
 
-    # Guard: beta (and future *_beta quantities) require eigensystems
-    beta_keys = {name for name in wanted if name == 'beta' or name.endswith('_beta')}
-    if beta_keys and not compute_eigensystems:
-        raise ValueError(
-            f"{sorted(beta_keys)} requires eigensystems; "
-            "set compute_eigensystems=True or remove these from compute."
-        )
-
     # Handle explicit center by shifting vertices
     use_centroid = False
     if center is not None:
