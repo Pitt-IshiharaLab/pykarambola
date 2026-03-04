@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Yajushi Khurana and Keisuke Ishihara
+# This file is part of pykarambola, a Python port of karambola.
+# See LICENSE for the full license text.
 """
 pykarambola - Python implementation of the Karambola package for computing
 Minkowski functionals and tensors on 3D triangulated surfaces.
