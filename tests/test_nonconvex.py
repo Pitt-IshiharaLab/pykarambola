@@ -12,7 +12,7 @@ import warnings
 import numpy as np
 import pytest
 
-from pykarambola.triangulation import Triangulation, LABEL_UNASSIGNED
+from pykarambola.triangulation import Triangulation
 from pykarambola.minkowski import (
     calculate_w200, calculate_w300, calculate_w202,
 )
@@ -71,6 +71,7 @@ def _notched_box_mesh():
 
 
 def _sorted_eigenvalues(w_matrix, label):
+    # Used by test_w202_eigenvalues; matches C++ karambola's sort-by-absolute-value convention.
     eig = calculate_eigensystem(w_matrix)
     return sorted(eig[label].result.eigen_values, key=abs)
 
@@ -122,18 +123,20 @@ class TestNonConvex:
                 assert np.isfinite(mat[i, j]), f"w202[{i},{j}] is not finite"
 
     def test_w202_eigenvalues(self):
-        """w202 eigenvalues must match C++ karambola reference values.
+        """w202 eigenvalues match C++ karambola reference values (sorted by absolute value).
 
-        TODO: fill in expected values after running C++ karambola on the
-        notched-box mesh and replace the pytest.skip call below.
+        C++ karambola on tests/fixtures/L_prism_4x3x4_notch2x3x2.poly:
+          m(0,0) = 3.66519142919  (x)
+          m(1,1) = 4.18879020479  (y)
+          m(2,2) = 3.66519142919  (z)
+          off-diagonals ≈ 0 (numerical noise ~1e-17)
 
-        Pykarambola computes (sorted): ≈ [3.6652, 3.6652, 4.1888]
+        w200 = 11.5191730632 = 11π/3 ✓ and w300 = 4π/3 ✓ confirm the
+        concave-edge sign convention is correct in both pykarambola and C++ karambola.
         """
-        pytest.skip("Reference values pending C++ karambola validation")
-        # Once C++ values are available, replace with:
-        # expected = sorted([TODO, TODO, TODO])
-        # actual = _sorted_eigenvalues(calculate_w202(self.surface), self.label)
-        # np.testing.assert_allclose(actual, expected, rtol=1e-4)
+        expected = sorted([3.66519142919, 3.66519142919, 4.18879020479], key=abs)
+        actual = _sorted_eigenvalues(calculate_w202(self.surface), self.label)
+        np.testing.assert_allclose(actual, expected, rtol=1e-4)
 
 
 class TestDegenerateTriangleWarning:

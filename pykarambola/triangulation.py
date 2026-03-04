@@ -196,7 +196,7 @@ class Triangulation:
                 f"{n_degenerate} degenerate (zero-area) triangle(s) detected; "
                 "their normals are undefined and dihedral-angle-based quantities "
                 "(w200, w202, w210, w220) may be unreliable.",
-                stacklevel=2,
+                stacklevel=3,
             )
         # Avoid division by zero for degenerate triangles
         safe_norms = np.where(norms > 0, norms, 1.0)
