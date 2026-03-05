@@ -48,7 +48,10 @@ _DERIVED_DEPS = {
 
 _ALL = _STANDARD | _EXTRA | set(_DERIVED_DEPS.keys())
 
-# Denominator scalar for each wX20 trace ratio (wX20 family only)
+# Denominator scalar for each wX20 trace ratio (wX20 family only).
+# This intentionally duplicates information already in _DERIVED_DEPS; do not
+# consolidate — _DERIVED_DEPS drives dependency promotion while _TRACE_DENOM
+# drives the runtime scalar lookup inside the per-label compute loop.
 _TRACE_DENOM = {
     'w020': 'w000', 'w120': 'w100',
     'w220': 'w200', 'w320': 'w300',
@@ -144,6 +147,12 @@ def minkowski_functionals(verts, faces, labels=None, center=None, compute='stand
     # Guard: beta quantities require eigensystems
     beta_keys = {name for name in wanted if name.endswith('_beta')}
     if beta_keys and not compute_eigensystems:
+        if isinstance(compute, str):
+            raise ValueError(
+                f"{sorted(beta_keys)} requires eigensystems. "
+                "Either set compute_eigensystems=True, or pass a list of names "
+                "that excludes beta quantities."
+            )
         raise ValueError(
             f"{sorted(beta_keys)} requires eigensystems; "
             "set compute_eigensystems=True or remove these from compute."
@@ -321,7 +330,15 @@ def minkowski_functionals(verts, faces, labels=None, center=None, compute='stand
                 scalar_name = _TRACE_DENOM.get(tensor_name)
                 if scalar_name is not None and scalar_name in out:
                     denom = out[scalar_name]
-                    out[ratio_key] = float('nan') if abs(denom) < 1e-12 else trace / denom
+                    if abs(denom) < 1e-12:
+                        warnings.warn(
+                            f"Trace ratio for {tensor_name} (label {label}): "
+                            f"{scalar_name} is near zero; returning NaN.",
+                            stacklevel=2,
+                        )
+                        out[ratio_key] = float('nan')
+                    else:
+                        out[ratio_key] = trace / denom
 
         per_label[label] = out
 

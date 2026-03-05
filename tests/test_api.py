@@ -608,6 +608,13 @@ class TestDerivedScalars:
                                   compute=['w020_beta'],
                                   compute_eigensystems=False)
 
+    def test_beta_compute_all_eigensystems_false_raises_helpful_message(self):
+        """#1: compute='all' with compute_eigensystems=False gives actionable message."""
+        with pytest.raises(ValueError, match="pass a list of names"):
+            minkowski_functionals(self.verts, self.faces,
+                                  compute='all',
+                                  compute_eigensystems=False)
+
     def test_w020_trace(self):
         """#2: w020_trace = Tr(w020) = np.trace of the 3x3 matrix."""
         result = minkowski_functionals(self.verts, self.faces,
@@ -616,12 +623,19 @@ class TestDerivedScalars:
         assert result['w020_trace'] == pytest.approx(expected_trace, rel=1e-6)
 
     def test_w020_trace_ratio_via_derived_dep(self):
-        """#53: requesting w020_trace_ratio alone auto-promotes w020 and w000."""
+        """#53: requesting w020_trace_ratio with parents listed returns correct value."""
         result = minkowski_functionals(self.verts, self.faces,
                                        compute=['w020', 'w000', 'w020_trace_ratio'])
         assert 'w020_trace_ratio' in result
         expected = float(np.trace(result['w020'])) / result['w000']
         assert result['w020_trace_ratio'] == pytest.approx(expected, rel=1e-6)
+
+    def test_w020_trace_ratio_auto_promotes(self):
+        """#53: requesting w020_trace_ratio alone auto-promotes w020 and w000."""
+        result = minkowski_functionals(self.verts, self.faces,
+                                       compute=['w020_trace_ratio'])
+        assert 'w020_trace_ratio' in result
+        assert np.isfinite(result['w020_trace_ratio'])
 
     def test_compute_all_includes_derived_keys(self):
         """#53: compute='all' includes all beta, trace, trace_ratio keys."""
