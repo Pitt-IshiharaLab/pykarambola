@@ -82,7 +82,6 @@ Two initialisation steps resisted vectorization: building the edge-keyed triangl
 Both require sequential insertion into a hash map indexed by vertex-pair keys, a graph-traversal pattern with data-dependent branching that cannot be expressed as bulk array operations.
 These two routines are therefore provided as an optional Cython extension (\texttt{\_accel.pyx}) that uses typed memoryviews and eliminates interpreter overhead on the inner loops.
 When the extension is not installed, equivalent pure-Python implementations are used as a fallback.
-The impact of the Cython extension on wall-clock runtime is quantified in the Results section.
 
 \subsection*{New file format support (OBJ, GLB)}
 % TODO (issue #28)
