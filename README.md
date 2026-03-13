@@ -170,7 +170,27 @@ Rank-2 tensors additionally yield `{name}_eigvals` and `{name}_eigvecs` entries.
 
 ## Citation
 
-If you use pykarambola in published work, please cite the original karambola package:
+If you use pykarambola in published work, please cite both pykarambola and the original karambola package.
+
+### pykarambola
+
+**APA:**
+> Ishihara, K., & Khurana, Y. (YYYY). pykarambola: TENTATIVE TITLE [Computer software]. https://doi.org/10.5281/zenodo.XXXXXXX
+
+**BibTeX:**
+```bibtex
+@software{pykarambola,
+  author = {Ishihara, Keisuke and Khurana, Yajushi},
+  title = {pykarambola: TENTATIVE TITLE},
+  year = {YYYY},
+  url = {https://github.com/Pitt-IshiharaLab/pykarambola},
+  doi = {10.5281/zenodo.XXXXXXX}
+}
+```
+
+**Note:** Version X.X.X, DOI, and release year will be updated after v1.0.0 is released (see [`CITATION.cff`](CITATION.cff) for current metadata).
+
+### karambola (original C++ package)
 
 > Schaller, F. M., Kapfer, S. C., & Schröder-Turk, G. E.
 > *karambola — 3D Minkowski Tensor Package* (v2.0).
