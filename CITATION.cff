@@ -1,5 +1,7 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
+title: "pykarambola: TENTATIVE TITLE"  # TODO: finalize title in M2 (#22–25)
+version: X.X.X  # TODO: update to actual version for v1.0.0 release
 repository-code: "https://github.com/Pitt-IshiharaLab/pykarambola"
 license: GPL-3.0-or-later
 authors:
@@ -10,18 +12,6 @@ authors:
     given-names: "Yajushi"
     orcid: "https://orcid.org/0009-0001-9064-8008"
 references:
-  - type: software
-    title: "pykarambola: TENTATIVE TITLE"  # TODO: finalize title in M2 (#22–25)
-    version: X.X.X  # TODO: update to actual version for v1.0.0 release
-    repository-code: "https://github.com/Pitt-IshiharaLab/pykarambola"
-    # doi: 10.5281/zenodo.XXXXXXX  # TODO: add Zenodo DOI after v1.0.0 release (#11)
-    authors:
-      - family-names: "Ishihara"
-        given-names: "Keisuke"
-        orcid: "https://orcid.org/0000-0002-8481-8680"
-      - family-names: "Khurana"
-        given-names: "Yajushi"
-        orcid: "https://orcid.org/0009-0001-9064-8008"
   - type: software
     title: "karambola - 3D Minkowski Tensor Package"
     version: 2.0
