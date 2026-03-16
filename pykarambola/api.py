@@ -107,7 +107,7 @@ def _ensure_outward_normals(verts, faces):
 
 
 def _label_mesh_components(faces):
-    """Return a per-face integer label (0-based) for each connected component.
+    """Return a per-face integer label (1-based) for each connected component.
 
     Parameters
     ----------
@@ -117,7 +117,7 @@ def _label_mesh_components(faces):
     Returns
     -------
     labels : np.ndarray, shape (F,)
-        Component label for each face, integers starting from 0.
+        Component label for each face, integers starting from 1.
         Empty array when ``faces`` is empty.
     """
     faces = np.asarray(faces)
@@ -128,7 +128,7 @@ def _label_mesh_components(faces):
     data = np.ones(len(edges), dtype=np.int8)
     graph = csr_matrix((data, (edges[:, 0], edges[:, 1])), shape=(n, n))
     _, vertex_labels = _sp_connected_components(graph, directed=False)
-    return vertex_labels[faces[:, 0]].astype(np.intp)
+    return vertex_labels[faces[:, 0]].astype(np.intp) + 1
 
 
 def _count_mesh_components(faces):

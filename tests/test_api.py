@@ -730,11 +730,11 @@ class TestLabelMeshComponents:
     """Tests for _label_mesh_components()."""
 
     def test_single_component_all_same_label(self):
-        """Single connected box → all faces get label 0."""
+        """Single connected box → all faces get label 1."""
         _, faces = _box_mesh(1.0, 1.0, 1.0)
         labels = _label_mesh_components(faces)
         assert labels.shape == (len(faces),)
-        assert set(labels.tolist()) == {0}
+        assert set(labels.tolist()) == {1}
 
     def test_two_disconnected_boxes_two_labels(self):
         """Two disconnected boxes → exactly two distinct labels."""
@@ -767,19 +767,19 @@ class TestAutoLabels:
         return np.vstack([vA, vB]), np.vstack([fA, fB_shifted])
 
     def test_single_box_auto_returns_nested_dict_one_key(self):
-        """Single box with labels='auto' → nested dict with one key (0)."""
+        """Single box with labels='auto' → nested dict with one key (1)."""
         verts, faces = _box_mesh(2.0, 3.0, 4.0)
         result = minkowski_tensors(verts, faces, labels='auto')
         assert isinstance(result, dict)
-        assert set(result.keys()) == {0}
-        assert 'w000' in result[0]
+        assert set(result.keys()) == {1}
+        assert 'w000' in result[1]
 
     def test_two_disconnected_boxes_auto_returns_two_keys(self):
-        """Two disconnected boxes → dict with keys 0 and 1."""
+        """Two disconnected boxes → dict with keys 1 and 2."""
         verts, faces = self._two_box_mesh()
         result = minkowski_tensors(verts, faces, labels='auto')
-        assert set(result.keys()) == {0, 1}
-        assert 'w000' in result[0] and 'w000' in result[1]
+        assert set(result.keys()) == {1, 2}
+        assert 'w000' in result[1] and 'w000' in result[2]
 
     def test_auto_volume_matches_single_box(self):
         """Each auto-detected component's volume equals a single-box volume."""
@@ -787,8 +787,8 @@ class TestAutoLabels:
         result = minkowski_tensors(verts, faces, labels='auto')
         single_result = minkowski_tensors(*_box_mesh(2.0, 2.0, 2.0))
         expected_vol = single_result['w000']
-        assert result[0]['w000'] == pytest.approx(expected_vol, rel=1e-6)
         assert result[1]['w000'] == pytest.approx(expected_vol, rel=1e-6)
+        assert result[2]['w000'] == pytest.approx(expected_vol, rel=1e-6)
 
     def test_auto_matches_explicit_label_array(self):
         """labels='auto' gives same tensors as passing the explicit label array."""
@@ -807,7 +807,7 @@ class TestAutoLabels:
         verts, faces = self._two_box_mesh()
         result, n = minkowski_tensors(verts, faces, labels='auto', return_count=True)
         assert n == 2
-        assert set(result.keys()) == {0, 1}
+        assert set(result.keys()) == {1, 2}
 
 
 @pytest.mark.skipif(not _has_skimage, reason='scikit-image not installed')
@@ -815,34 +815,34 @@ class TestAutoLabelsFromLabelImage:
     """Tests for autolabel=True in minkowski_tensors_from_label_image()."""
 
     def test_single_blob_autolabel_one_key(self):
-        """Single connected blob → result keyed by component index 0."""
+        """Single connected blob → result keyed by component index 1."""
         vol = _voxel_box((20, 20, 20), np.s_[5:15, 5:15, 5:15])
         result = minkowski_tensors_from_label_image(vol, autolabel=True)
-        assert set(result.keys()) == {0}
-        assert 'w000' in result[0]
+        assert set(result.keys()) == {1}
+        assert 'w000' in result[1]
 
     def test_two_disconnected_blobs_same_label_split(self):
-        """Two disconnected blobs (same label value) → split into components 0 and 1."""
+        """Two disconnected blobs (same label value) → split into components 1 and 2."""
         vol = np.zeros((30, 30, 30), dtype=np.int32)
         vol[2:6, 2:6, 2:6] = 1
         vol[22:26, 22:26, 22:26] = 1
         result = minkowski_tensors_from_label_image(vol, autolabel=True)
-        assert set(result.keys()) == {0, 1}
+        assert set(result.keys()) == {1, 2}
 
     def test_two_labels_treated_as_binary(self):
-        """Two different label values → treated as binary, two components, keys 0 and 1."""
+        """Two different label values → treated as binary, two components, keys 1 and 2."""
         vol = np.zeros((30, 30, 30), dtype=np.int32)
         vol[2:8, 2:8, 2:8] = 1
         vol[15:25, 15:25, 15:25] = 2
         result = minkowski_tensors_from_label_image(vol, autolabel=True)
-        assert set(result.keys()) == {0, 1}
+        assert set(result.keys()) == {1, 2}
 
     def test_autolabel_vs_default_same_volume_single_blob(self):
         """autolabel=True and default give same volume for a single connected blob."""
         vol = _voxel_box((20, 20, 20), np.s_[5:15, 5:15, 5:15])
         r_default = minkowski_tensors_from_label_image(vol)
         r_auto = minkowski_tensors_from_label_image(vol, autolabel=True)
-        assert r_auto[0]['w000'] == pytest.approx(r_default[1]['w000'], rel=1e-6)
+        assert r_auto[1]['w000'] == pytest.approx(r_default[1]['w000'], rel=1e-6)
 
     def test_autolabel_with_return_count(self):
         """autolabel=True + return_count=True returns correct object count."""
