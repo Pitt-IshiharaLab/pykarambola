@@ -73,6 +73,9 @@ The label-image API (\texttt{minkowski\_tensors\_from\_label\_image}) requires s
 Pykarambola retains support for the two mesh formats accepted by C++ karambola: the karambola-native \texttt{.poly} format and the Object File Format (\texttt{.off}).
 Two additional parsers for Wavefront OBJ (\texttt{.obj}) and binary glTF (\texttt{.glb}) were added to broaden compatibility with mesh files produced by common 3D reconstruction and visualisation tools.
 
+The Python port and software development were assisted by Claude (Opus 4.5 and Sonnet 4.6; Anthropic).
+Numerical correctness of the port was validated by extensive benchmarking against the C++ karambola binary across a diverse set of test meshes, confirming agreement to floating-point precision for all Minkowski scalar and tensor quantities.
+
 \subsection*{Acceleration strategy: NumPy vectorization and Cython}
 The primary performance strategy in pykarambola is NumPy vectorization~\cite{harris2020numpy}.
 Rather than iterating over individual triangles or edges in Python, all mesh data are stored as contiguous NumPy arrays and bulk array operations are applied across the entire mesh at once.
