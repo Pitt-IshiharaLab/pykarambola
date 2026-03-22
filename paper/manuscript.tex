@@ -67,8 +67,8 @@ The port reproduces the logical structure of the C++ source: a \texttt{Triangula
 The C++ implementation depended on the GNU Scientific Library (GSL) for eigenvalue decomposition; pykarambola replaces this with NumPy's \texttt{eigh} routine, removing the only non-Python build dependency from the core computation.
 
 The package is structured around a pure-Python core that requires NumPy~\cite{harris2020numpy} and SciPy~\cite{virtanen2020scipy}.
-SciPy is used for connected component detection on mesh graphs (\texttt{scipy.sparse.csgraph.connected\_components}) and for spherical harmonic basis functions (\texttt{scipy.special.sph\_harm}) in the spherical Minkowski summary quantities (\texttt{msm}).
-An optional Cython extension module (\texttt{\_accel}) accelerates the graph-traversal steps of mesh initialisation and is compiled at install time when Cython is available (\texttt{pip install pykarambola[accel]}); the package falls back to pure-Python implementations when the extension is absent (described below).
+SciPy is used for connected component detection on mesh graphs and for spherical harmonic basis functions in the spherical Minkowski summary quantities (\texttt{msm}).
+An optional Cython extension accelerates the graph-traversal steps of mesh initialisation; the package falls back to pure-Python implementations when the extension is absent (described below).
 The API for computing Minkowski tensors directly from segmented 3D label images (\texttt{minkowski\_tensors\_from\_label\_image}) requires scikit-image~\cite{vanderwalt2014scikit} for marching-cubes surface extraction; this dependency is not declared as mandatory and resolves automatically in environments where scikit-image is already present.
 
 Pykarambola retains support for the two mesh formats accepted by C++ karambola: the karambola-native \texttt{.poly} format and the Object File Format (\texttt{.off}).
@@ -94,7 +94,7 @@ pykarambola exposes two high-level entry points that accept NumPy arrays and ret
 The \texttt{compute} argument accepts \texttt{'standard'} (14 base tensors plus eigensystems), \texttt{'all'} (adds higher-order terms \texttt{w103}, \texttt{w104}, the spherical Minkowski summary quantities \texttt{msm}, anisotropy indices, and tensor traces, the latter two being pykarambola-specific extensions not present in C++ karambola), or an explicit list of names for selective computation.
 When the \texttt{labels} argument is provided as a per-face integer array, or set to \texttt{'auto'} to detect connected components automatically via \texttt{scipy.sparse.csgraph}, the function returns a nested dict keyed by label.
 The \texttt{center} argument controls the reference point for position-dependent tensors: \texttt{None} uses the array origin, \texttt{'reference\_centroid'} reproduces the C++ karambola \texttt{--reference\_centroid} flag, \texttt{'centroid\_mesh'} shifts each object to its volume-weighted center of mass before computing, and an explicit $(3,)$ array applies a fixed shift; the boolean \texttt{center\_per\_label} (default \texttt{True}) determines whether centroid shifts are computed independently per labeled object or from the whole mesh.
-\texttt{minkowski\_tensors\_from\_label\_image(label\_image)} accepts a three-dimensional integer NumPy array in which each nonzero value identifies an object.
+\texttt{minkowski\_tensors\_from\_label\_image} accepts a three-dimensional integer NumPy array in which each nonzero value identifies an object.
 It extracts a triangulated isosurface for each label via \texttt{scikit-image} marching cubes and returns a dict keyed by integer label with the same structure as the mesh API; the \texttt{spacing} argument propagates physical voxel dimensions to all length, area, and volume quantities, and \texttt{autolabel=True} treats the array as a binary mask and delegates connected-component splitting to the mesh API.
 
 
