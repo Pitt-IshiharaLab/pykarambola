@@ -34,6 +34,7 @@ Homepage = "https://github.com/Pitt-IshiharaLab/pykarambola"
 dev = ["pytest", "scikit-image"]
 accel = ["cython>=3.0"]
 glb = ["trimesh"]
+notebooks = ["scikit-image", "matplotlib", "seaborn", "pandas", "medmnist"]
 
 [tool.setuptools.packages.find]
 include = ["pykarambola*"]
