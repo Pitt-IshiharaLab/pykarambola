@@ -1,0 +1,19 @@
+# input_file = /Users/yajushikhurana/Desktop/karambola_mac_m4/data/input_files/basic_shapes/runtime_tests/sphere_sub11.off
+#
+# keyword explanations: (not all keywords have to show up)
+# closed = the labeled surface is closed
+# shared = the labeled surface has edges whose neighbours are surfaces with other labels
+# open   = the labeled surface is open, there are no neighbours to some of the edges
+# calculation_forced = stubbornly applied the formulae even though the surface is shared or open
+# cant_be_calculated = can't be calculated because surface is shared or open
+# reference_origin   = the tensors are calculated with respect to the origin
+# reference_centroid = the tensors are calculated with respect to the minkowski-vectors
+#
+# calculated with karambola 2.0
+# contact: karambola@physik.uni-erlangen.de
+#
+#           #1 label             #2 v[x]             #3 v[y]             #4 v[z]             #5 name         #6 Keywords
+                 ALL  -1.28055362412e-13  -2.32465210082e-13   2.22073977188e-14                w010              closed     reference_origin 
+                 ALL   2.03079256021e-13   3.55050802039e-13   3.82064773377e-14                w110              closed     reference_origin 
+                 ALL  -4.86189303052e-14   3.25960384292e-13  -2.16118513992e-14                w210              closed     reference_origin 
+                 ALL   2.55612575457e-13   2.86906233863e-13  -1.75450465218e-14                w310              closed     reference_origin 
