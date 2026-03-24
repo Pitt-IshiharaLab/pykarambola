@@ -24,3 +24,10 @@ paper/*.xwm
 # Generated datasets and benchmark outputs (large, not tracked)
 dataset/medmnist_benchmarking/
 dataset/karambola_results/medmnist_benchmarking/
+
+# Large icosphere .off files (sub8+) exceed GitHub's 100 MB limit.
+# Regenerate them by running the write-off cell in paper/notebooks/runtime_comparison.ipynb.
+dataset/basic_shapes/runtime_tests/sphere_sub8.off
+dataset/basic_shapes/runtime_tests/sphere_sub9.off
+dataset/basic_shapes/runtime_tests/sphere_sub10.off
+dataset/basic_shapes/runtime_tests/sphere_sub11.off
