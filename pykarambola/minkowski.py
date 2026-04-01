@@ -572,3 +572,173 @@ def calculate_w104(surface):
 
         results[lab] = r
     return results
+
+
+def calculate_w203(surface):
+    """Curvature-weighted rank-3 normal tensor."""
+    results = {}
+    label_groups = _group_by_label(surface._labels)
+
+    for lab, mask in label_groups.items():
+        r = _default_rank3()
+        tri_indices = np.where(mask)[0]
+
+        for j in range(3):
+            alpha = surface._dihedral_angles[tri_indices, j]
+            nonzero = alpha != 0.0
+            if not np.any(nonzero):
+                continue
+            idx = tri_indices[nonzero]
+            alpha_nz = alpha[nonzero]
+
+            n1 = surface._normals[idx]
+            nb_idx = surface._neighbours[idx, j]
+            n2 = surface._normals[nb_idx]
+
+            # Average normal (arithmetic mean)
+            n_avg = (n1 + n2) / 2.0
+
+            e_len = surface._edge_lengths[idx, j]
+            weight = e_len * alpha_nz / 24.0
+
+            for i in range(3):
+                for j_ in range(3):
+                    for k in range(3):
+                        r.result[i, j_, k] += float(np.sum(
+                            weight * n_avg[:, i] * n_avg[:, j_] * n_avg[:, k]
+                        ))
+
+        results[lab] = r
+    return results
+
+
+def calculate_w303(surface):
+    """Gaussian-curvature-weighted rank-3 normal tensor."""
+    if np.any(surface._vertex_angle_sums <= 0):
+        warnings.warn(
+            "Mesh contains vertices with zero or negative angle sum (isolated or "
+            "degenerate triangles); their contribution is set to zero.",
+            stacklevel=2,
+        )
+
+    results = {}
+    label_groups = _group_by_label(surface._labels)
+
+    for lab, mask in label_groups.items():
+        r = _default_rank3()
+        tri_indices = np.where(mask)[0]
+
+        for j in range(3):
+            vert_idx = surface._faces[tri_indices, j]
+            angle = surface._vertex_angles[tri_indices, j]
+            angle_sum = surface._vertex_angle_sums[vert_idx]
+            safe_angle_sum = np.where(angle_sum > 0, angle_sum, 1.0)
+            angle_part = np.where(
+                angle_sum > 0,
+                (2.0 * np.pi * (angle / safe_angle_sum) - angle) / 3.0,
+                0.0,
+            )
+            n = surface._normals[tri_indices]
+
+            for i in range(3):
+                for j_ in range(3):
+                    for k in range(3):
+                        r.result[i, j_, k] += float(np.sum(
+                            angle_part * n[:, i] * n[:, j_] * n[:, k]
+                        ))
+
+        results[lab] = r
+    return results
+
+
+def calculate_w204(surface):
+    """Curvature-weighted rank-4 normal tensor via Voigt representation."""
+    results = {}
+    label_groups = _group_by_label(surface._labels)
+    sqrt2 = np.sqrt(2.0)
+
+    for lab, mask in label_groups.items():
+        r = _default_rank4()
+        tri_indices = np.where(mask)[0]
+
+        for j in range(3):
+            alpha = surface._dihedral_angles[tri_indices, j]
+            nonzero = alpha != 0.0
+            if not np.any(nonzero):
+                continue
+            idx = tri_indices[nonzero]
+            alpha_nz = alpha[nonzero]
+
+            n1 = surface._normals[idx]
+            nb_idx = surface._neighbours[idx, j]
+            n2 = surface._normals[nb_idx]
+
+            # Average normal (arithmetic mean)
+            n_avg = (n1 + n2) / 2.0
+
+            e_len = surface._edge_lengths[idx, j]
+            weight = e_len * alpha_nz / 24.0
+
+            # Voigt vector: [xx, yy, zz, yz*sqrt2, xz*sqrt2, xy*sqrt2]
+            t = np.empty((len(idx), 6), dtype=np.float64)
+            t[:, 0] = n_avg[:, 0] * n_avg[:, 0]
+            t[:, 1] = n_avg[:, 1] * n_avg[:, 1]
+            t[:, 2] = n_avg[:, 2] * n_avg[:, 2]
+            t[:, 3] = n_avg[:, 1] * n_avg[:, 2] * sqrt2
+            t[:, 4] = n_avg[:, 0] * n_avg[:, 2] * sqrt2
+            t[:, 5] = n_avg[:, 0] * n_avg[:, 1] * sqrt2
+
+            # Outer product weighted sum: sum(w * t_i * t_j)
+            for i in range(6):
+                for j_ in range(i + 1):
+                    r.result[i, j_] += float(np.sum(weight * t[:, i] * t[:, j_]))
+
+        results[lab] = r
+    return results
+
+
+def calculate_w304(surface):
+    """Gaussian-curvature-weighted rank-4 normal tensor via Voigt representation."""
+    if np.any(surface._vertex_angle_sums <= 0):
+        warnings.warn(
+            "Mesh contains vertices with zero or negative angle sum (isolated or "
+            "degenerate triangles); their contribution is set to zero.",
+            stacklevel=2,
+        )
+
+    results = {}
+    label_groups = _group_by_label(surface._labels)
+    sqrt2 = np.sqrt(2.0)
+
+    for lab, mask in label_groups.items():
+        r = _default_rank4()
+        tri_indices = np.where(mask)[0]
+
+        for j in range(3):
+            vert_idx = surface._faces[tri_indices, j]
+            angle = surface._vertex_angles[tri_indices, j]
+            angle_sum = surface._vertex_angle_sums[vert_idx]
+            safe_angle_sum = np.where(angle_sum > 0, angle_sum, 1.0)
+            angle_part = np.where(
+                angle_sum > 0,
+                (2.0 * np.pi * (angle / safe_angle_sum) - angle) / 3.0,
+                0.0,
+            )
+            n = surface._normals[tri_indices]
+
+            # Voigt vector: [xx, yy, zz, yz*sqrt2, xz*sqrt2, xy*sqrt2]
+            t = np.empty((len(tri_indices), 6), dtype=np.float64)
+            t[:, 0] = n[:, 0] * n[:, 0]
+            t[:, 1] = n[:, 1] * n[:, 1]
+            t[:, 2] = n[:, 2] * n[:, 2]
+            t[:, 3] = n[:, 1] * n[:, 2] * sqrt2
+            t[:, 4] = n[:, 0] * n[:, 2] * sqrt2
+            t[:, 5] = n[:, 0] * n[:, 1] * sqrt2
+
+            # Outer product weighted sum: sum(w * t_i * t_j)
+            for i in range(6):
+                for j_ in range(i + 1):
+                    r.result[i, j_] += float(np.sum(angle_part * t[:, i] * t[:, j_]))
+
+        results[lab] = r
+    return results

@@ -14,6 +14,7 @@ from .minkowski import (
     calculate_w010, calculate_w110, calculate_w210, calculate_w310,
     calculate_w020, calculate_w120, calculate_w220, calculate_w320,
     calculate_w102, calculate_w202, calculate_w103, calculate_w104,
+    calculate_w203, calculate_w303, calculate_w204, calculate_w304,
 )
 from .spherical import calculate_sphmink
 from .eigensystem import calculate_eigensystem
@@ -27,7 +28,7 @@ _STANDARD = {
 }
 
 # Extra functionals available with compute='all'
-_EXTRA = {'w103', 'w104', 'msm'}
+_EXTRA = {'w103', 'w104', 'w203', 'w303', 'w204', 'w304', 'msm'}
 
 # Rank-2 tensor names that get eigensystems
 _RANK2 = ['w020', 'w120', 'w220', 'w320', 'w102', 'w202']
@@ -421,6 +422,10 @@ def minkowski_tensors(verts, faces, labels=None, center=None, center_per_label=T
     # --- Optional higher-order ---
     raw_w103 = calculate_w103(surface) if 'w103' in wanted else {}
     raw_w104 = calculate_w104(surface) if 'w104' in wanted else {}
+    raw_w203 = calculate_w203(surface) if 'w203' in wanted else {}
+    raw_w303 = calculate_w303(surface) if 'w303' in wanted else {}
+    raw_w204 = calculate_w204(surface) if 'w204' in wanted else {}
+    raw_w304 = calculate_w304(surface) if 'w304' in wanted else {}
     raw_msm = calculate_sphmink(surface) if 'msm' in wanted else {}
 
     # Map names to raw results
@@ -429,7 +434,9 @@ def minkowski_tensors(verts, faces, labels=None, center=None, center_per_label=T
         'w010': raw_w010, 'w110': raw_w110, 'w210': raw_w210, 'w310': raw_w310,
         'w020': raw_w020, 'w120': raw_w120, 'w220': raw_w220, 'w320': raw_w320,
         'w102': raw_w102, 'w202': raw_w202,
-        'w103': raw_w103, 'w104': raw_w104, 'msm': raw_msm,
+        'w103': raw_w103, 'w104': raw_w104,
+        'w203': raw_w203, 'w303': raw_w303, 'w204': raw_w204, 'w304': raw_w304,
+        'msm': raw_msm,
     }
 
     # Eigensystem raw results

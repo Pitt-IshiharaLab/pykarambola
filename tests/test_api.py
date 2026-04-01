@@ -236,10 +236,18 @@ class TestComputeOptions:
         result = minkowski_tensors(self.verts, self.faces, compute='all')
         assert 'w103' in result
         assert 'w104' in result
+        assert 'w203' in result
+        assert 'w303' in result
+        assert 'w204' in result
+        assert 'w304' in result
         assert 'msm_ql' in result
         assert 'msm_wl' in result
         assert result['w103'].shape == (3, 3, 3)
         assert result['w104'].shape == (6, 6)
+        assert result['w203'].shape == (3, 3, 3)
+        assert result['w303'].shape == (3, 3, 3)
+        assert result['w204'].shape == (6, 6)
+        assert result['w304'].shape == (6, 6)
         assert result['msm_ql'].shape[0] > 0
         assert result['msm_wl'].shape[0] > 0
 

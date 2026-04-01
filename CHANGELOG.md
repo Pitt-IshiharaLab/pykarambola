@@ -22,6 +22,7 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 - `labels='auto'` option in `minkowski_tensors()` to automatically detect connected mesh components and return results keyed by 1-based component index
 - `autolabel=False` parameter in `minkowski_tensors_from_label_image()`: when `True`, treats the label image as binary, builds one mesh from all non-zero voxels, and detects connected components automatically (#80)
 - `_label_mesh_components()` public helper function that returns per-face component labels for a triangular mesh using scipy-based connected components detection
+- `w203`, `w303`, `w204`, `w304` rank-3 and rank-4 normal tensor families, completing the normal tensor hierarchy: curvature-weighted (w203, w204) and Gaussian-curvature-weighted (w303, w304) variants extending w103/w104 (#101)
 
 ### Changed
 - `center='centroid'` in `minkowski_tensors` renamed to `center='reference_centroid'` to match the C++ `--reference_centroid` flag (#73)

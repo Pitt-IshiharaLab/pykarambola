@@ -15,7 +15,8 @@ from pykarambola.minkowski import (
     calculate_w000, calculate_w100, calculate_w200, calculate_w300,
     calculate_w010, calculate_w110, calculate_w210, calculate_w310,
     calculate_w020, calculate_w120, calculate_w220, calculate_w320,
-    calculate_w102, calculate_w202,
+    calculate_w102, calculate_w202, calculate_w203, calculate_w303,
+    calculate_w204, calculate_w304,
 )
 from pykarambola.eigensystem import calculate_eigensystem
 
@@ -253,3 +254,96 @@ class TestSchiefeBox:
         expected = sorted([pi / 6 * (a + b), pi / 6 * (a + c), pi / 6 * (b + c)])
         actual = _sorted_eigenvalues(w202, self.label)
         np.testing.assert_allclose(actual, expected, rtol=1e-4)
+
+
+# ============================================================================
+# Rotational invariance tests for new rank-3 and rank-4 normal tensors
+# ============================================================================
+# These compare Frobenius norms on axis-aligned vs. skewed boxes.
+# Frobenius norm is SO(3)-invariant, so it should match (up to numerical error).
+
+
+def _frobenius_norm(tensor_result_dict, label):
+    """Compute Frobenius norm of a tensor result."""
+    result = tensor_result_dict[label].result
+    arr = result.to_numpy() if hasattr(result, 'to_numpy') else np.asarray(result)
+    return float(np.linalg.norm(arr))
+
+
+class TestW203RotInvariance:
+    """Verify w203 (curvature-weighted rank-3 normal tensor) is rotation invariant.
+
+    Note: For an axis-aligned box, w203 is exactly zero because averaged normals
+    across edges cancel. For the skewed box, it is typically small but nonzero.
+    This test verifies that when both norms are small, the difference is acceptable.
+    """
+
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        self.surface_aligned = _load_box("box_a=2_b=3_c=4.poly")
+        self.surface_skewed = _load_box("schiefebox_a=2_b=3_c=4.poly")
+        self.label = LABEL_UNASSIGNED
+
+    def test_w203_rotinvariance(self):
+        w203_aligned = calculate_w203(self.surface_aligned)
+        w203_skewed = calculate_w203(self.surface_skewed)
+        norm_aligned = _frobenius_norm(w203_aligned, self.label)
+        norm_skewed = _frobenius_norm(w203_skewed, self.label)
+        # Both norms should be small; absolute difference acceptable
+        assert abs(norm_skewed - norm_aligned) < 1e-4
+
+
+class TestW303RotInvariance:
+    """Verify w303 (Gaussian-weighted rank-3 normal tensor) is rotation invariant.
+
+    Note: For an axis-aligned box, w303 is essentially zero due to symmetry.
+    This test verifies that when both norms are small, the difference is acceptable.
+    """
+
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        self.surface_aligned = _load_box("box_a=2_b=3_c=4.poly")
+        self.surface_skewed = _load_box("schiefebox_a=2_b=3_c=4.poly")
+        self.label = LABEL_UNASSIGNED
+
+    def test_w303_rotinvariance(self):
+        w303_aligned = calculate_w303(self.surface_aligned)
+        w303_skewed = calculate_w303(self.surface_skewed)
+        norm_aligned = _frobenius_norm(w303_aligned, self.label)
+        norm_skewed = _frobenius_norm(w303_skewed, self.label)
+        # Both norms should be small; absolute difference acceptable
+        assert abs(norm_skewed - norm_aligned) < 1e-4
+
+
+class TestW204RotInvariance:
+    """Verify w204 (curvature-weighted rank-4 normal tensor) is rotation invariant."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        self.surface_aligned = _load_box("box_a=2_b=3_c=4.poly")
+        self.surface_skewed = _load_box("schiefebox_a=2_b=3_c=4.poly")
+        self.label = LABEL_UNASSIGNED
+
+    def test_w204_rotinvariance(self):
+        w204_aligned = calculate_w204(self.surface_aligned)
+        w204_skewed = calculate_w204(self.surface_skewed)
+        norm_aligned = _frobenius_norm(w204_aligned, self.label)
+        norm_skewed = _frobenius_norm(w204_skewed, self.label)
+        np.testing.assert_allclose(norm_skewed, norm_aligned, rtol=5e-3)
+
+
+class TestW304RotInvariance:
+    """Verify w304 (Gaussian-weighted rank-4 normal tensor) is rotation invariant."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        self.surface_aligned = _load_box("box_a=2_b=3_c=4.poly")
+        self.surface_skewed = _load_box("schiefebox_a=2_b=3_c=4.poly")
+        self.label = LABEL_UNASSIGNED
+
+    def test_w304_rotinvariance(self):
+        w304_aligned = calculate_w304(self.surface_aligned)
+        w304_skewed = calculate_w304(self.surface_skewed)
+        norm_aligned = _frobenius_norm(w304_aligned, self.label)
+        norm_skewed = _frobenius_norm(w304_skewed, self.label)
+        np.testing.assert_allclose(norm_skewed, norm_aligned, rtol=5e-3)
