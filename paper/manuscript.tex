@@ -109,21 +109,22 @@ First, synthetic icospheres at subdivision levels 5–10 (10{,}242 to 10{,}485{,
 Second, the AdrenalMNIST3D a standardized biomedical dataset~\cite{Yang2023MedMNIST} with 1{,}584 adrenal glands at two voxel resolutions (28$^3$ and 64$^3$) was used to measure performance on realistic biological meshes.
 All measurements were performed on a single core of an Apple~M4 processor (macOS~15.7.3, Python~3.11).
 
-\textbf{edit}On icospheres, the Cython-accelerated build reduced compute time by 1.5–1.9$\times$ relative to the pure-Python build, with the largest gain at smaller mesh sizes where interpreter overhead in the graph-traversal routines is proportionally greater (Figure~\ref{fig:runtime}).
+On icospheres, the Cython-accelerated build reduced compute time by ~1.5–1.9$\times$ relative to the pure-Python build, with the largest gain at smaller mesh sizes where interpreter overhead in the graph-traversal routines is proportionally greater (Figure~\ref{fig:runtime}).
 End-to-end (file parse plus compute), pykarambola was 2.0–2.2$\times$ faster than C++ karambola across all mesh sizes; the Cython-accelerated build reached 2.7–3.4$\times$ faster.
 On AdrenalMNIST3D, pykarambola processed all 1{,}584 meshes at 28$^3$ resolution in 22~s versus 92~s for C++ karambola (4.1$\times$ faster) and at 64$^3$ resolution in 112~s versus 221~s (2.0$\times$ faster), for a 2.3$\times$ combined speedup.
 The C++ karambola timing includes sequential file I/O (one result folder per mesh written to disk), whereas the pykarambola timing covers only in-memory computation; the I/O overhead of the C++ binary partially accounts for the speedup observed on the adrenal dataset.
 
 \begin{figure}
 \centering
-% TODO (issue #19): Figure — runtime benchmark pykarambola vs C++ karambola
+\includegraphics[width=\linewidth]{notebooks/results/timing_comparison.pdf}
 \caption{Runtime benchmark comparing pykarambola and C++ karambola as a function of mesh size.}
 \label{fig:runtime}
 \end{figure}
 
 \subsection*{Numerical accuracy}
 
-We compared pykarambola output to C++ karambola on the full AdrenalMNIST3D dataset~\cite{Yang2023MedMNIST} (1{,}584 meshes at both 28$^3$ and 64$^3$ resolutions), evaluating all 76 scalar, vector, and tensor features returned by the standard computation mode.
+We compared pykarambola output to C++ karambola on the full AdrenalMNIST3D dataset~\cite{Yang2023MedMNIST} (1{,}584 meshes at both 28$^3$ and 64$^3$ resolutions), evaluating all scalar, vector, tensor and tensor eigenvalue features returned by the standard computation mode.
+In addition, the anisotropy indices for the adrenal meshes were computed.
 For 73 of the 76 features, mean relative error was below $3 \times 10^{-5}$\% and maximum relative error was below $3.5 \times 10^{-3}$\% at 28$^3$ resolution and below $0.73$\% at 64$^3$ resolution, confirming agreement at floating-point precision across all Minkowski scalars, vectors, and tensors (Figure~\ref{fig:accuracy}).
 
 Three features showed elevated mean relative errors: the three \texttt{w010} components (the center-of-mass position vector), \texttt{w300} (the integral of mean curvature), and the \texttt{w202\_02} off-diagonal tensor element.
@@ -172,7 +173,7 @@ The residual discrepancies observed in non-near-zero features arise from differe
 %% -------------------------------------------------------
 \section*{Software availability}
 %% -------------------------------------------------------
-pykarambola is available at \url{https://github.com/Pitt-IshiharaLab/pykarambola}.
+pykarambola is available at \url{https://github.com/Ishihara-SynthMorph/pykarambola}.
 Core dependencies are NumPy and SciPy; optional dependencies include Cython (for acceleration) and scikit-image (for label-image API).
 % TODO (issue #36): Complete software availability statement
 
