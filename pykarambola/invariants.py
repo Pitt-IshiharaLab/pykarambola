@@ -10,6 +10,10 @@ The invariants are organized by polynomial degree:
 - Degree 2: Dot products (vectors) and Frobenius inner products (matrices)
 - Degree 3: Quadratic forms, triple traces, and pseudo-scalars
 
+Note: This module labels all l=1 irreps as '1e'. Unlike e3nn which distinguishes
+'1e' (axial) from '1o' (polar), here the label indicates only the angular
+momentum quantum number. Parity is handled via the symmetry='O3'/'SO3' parameter.
+
 References
 ----------
 Geiger & Smidt (2022) - e3nn: Euclidean Neural Networks
@@ -83,7 +87,7 @@ def decompose_all(tensors_dict: dict[str, np.ndarray | float]) -> dict[tuple[str
     For each input tensor, decomposes into SO(3) irreps labeled by angular
     momentum quantum number and parity:
     - Rank 0 (scalar): '0e' (even parity scalar)
-    - Rank 1 (vector): '1e' (odd parity vector, but even under proper rotations)
+    - Rank 1 (vector): '1e' (polar vector, l=1 irrep)
     - Rank 2 (matrix): '0e' (trace/3) + '2e' (traceless symmetric part)
 
     Parameters
