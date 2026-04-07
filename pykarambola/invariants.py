@@ -255,7 +255,7 @@ def _commutator_pseudoscalars(decomposed: dict[tuple[str, str], np.ndarray | flo
     Extracts the axial vector from [T_a, T_b] and dots with v_k.
 
     The axial vector of an antisymmetric matrix A is:
-    a = (A_{32}, A_{13}, A_{21}) such that A_{ij} = epsilon_{ijk} a_k
+    a = (A_{12}, A_{20}, A_{01}) such that A_{ij} = epsilon_{ijk} a_k
     """
     vectors = _collect_by_irrep(decomposed, '1e')
     matrices = _collect_by_irrep(decomposed, '2e')
@@ -267,9 +267,9 @@ def _commutator_pseudoscalars(decomposed: dict[tuple[str, str], np.ndarray | flo
     for (name_a, Ta), (name_b, Tb) in combinations(matrices, 2):
         # Commutator [Ta, Tb] = Ta @ Tb - Tb @ Ta (antisymmetric)
         comm = Ta @ Tb - Tb @ Ta
-        # Extract axial vector: (C_{32}, C_{13}, C_{21}) = (C[2,1]-C[1,2], C[0,2]-C[2,0], C[1,0]-C[0,1]) / 2
-        # For antisymmetric matrix: C[i,j] = -C[j,i], so axial = (C[2,1], C[0,2], C[1,0])
-        axial = np.array([comm[2, 1], comm[0, 2], comm[1, 0]])
+        # Extract axial vector: (C_{12}, C_{20}, C_{01})
+        # For antisymmetric matrix: C[i,j] = -C[j,i], so axial = (C[1,2], C[2,0], C[0,1])
+        axial = np.array([comm[1, 2], comm[2, 0], comm[0, 1]])
 
         for name_k, vk in vectors:
             label = f"comm_{name_a}_{name_b}_{name_k}"
