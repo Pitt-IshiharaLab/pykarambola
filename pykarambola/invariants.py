@@ -227,3 +227,120 @@ def _degree1_scalars(decomposed):
         scalars[4 + i] = decomposed[(name, '0e')]
 
     return scalars, list(_DEGREE1_LABELS)
+
+
+# -----------------------------------------------------------------------------
+# Degree-2 Invariants (Dot Products & Frobenius Inner Products)
+# -----------------------------------------------------------------------------
+
+# Short aliases for vectors (v0-v3) and traceless tensors (T0-T5)
+_VECTOR_ALIASES = {
+    'v0': 'w010', 'v1': 'w110', 'v2': 'w210', 'v3': 'w310'
+}
+_TRACELESS_ALIASES = {
+    'T0': 'w020', 'T1': 'w120', 'T2': 'w220', 'T3': 'w320', 'T4': 'w102', 'T5': 'w202'
+}
+
+
+def _vector_dot_products(decomposed):
+    """Compute degree-2 vector dot product invariants v_i · v_j for i <= j.
+
+    Parameters
+    ----------
+    decomposed : dict
+        Output from decompose_all().
+
+    Returns
+    -------
+    invariants : np.ndarray, shape (10,)
+        The 10 dot product invariants.
+    labels : list of str
+        Human-readable labels.
+
+    Notes
+    -----
+    The contraction v_i · v_j = sum_k v_i[k] * v_j[k] is SO(3)-invariant
+    since ||Rv|| = ||v|| for any rotation R.
+    """
+    # Extract vectors in deterministic order
+    vectors = []
+    for alias in ['v0', 'v1', 'v2', 'v3']:
+        name = _VECTOR_ALIASES[alias]
+        vectors.append(decomposed[(name, '1o')])
+
+    # Compute dot products for all i <= j (10 pairs)
+    invariants = []
+    labels = []
+    for i in range(4):
+        for j in range(i, 4):
+            dot_val = np.dot(vectors[i], vectors[j])
+            invariants.append(dot_val)
+            labels.append(f'dot_v{i}_v{j}')
+
+    return np.array(invariants, dtype=np.float64), labels
+
+
+def _frobenius_inner_products(decomposed):
+    """Compute degree-2 Frobenius inner product invariants Tr(T_i^T T_j) for i <= j.
+
+    Parameters
+    ----------
+    decomposed : dict
+        Output from decompose_all().
+
+    Returns
+    -------
+    invariants : np.ndarray, shape (21,)
+        The 21 Frobenius inner product invariants.
+    labels : list of str
+        Human-readable labels.
+
+    Notes
+    -----
+    The Frobenius inner product Tr(A^T B) = sum_{ij} A_ij * B_ij is SO(3)-invariant.
+    For symmetric traceless matrices T_i, T_j, this equals Tr(T_i T_j).
+    """
+    # Extract traceless tensors in deterministic order
+    traceless = []
+    for alias in ['T0', 'T1', 'T2', 'T3', 'T4', 'T5']:
+        name = _TRACELESS_ALIASES[alias]
+        traceless.append(decomposed[(name, '2e')])
+
+    # Compute Frobenius inner products for all i <= j (21 pairs)
+    invariants = []
+    labels = []
+    for i in range(6):
+        for j in range(i, 6):
+            # Frobenius inner product: Tr(T_i^T @ T_j) = sum of element-wise products
+            frob_val = np.einsum('ij,ij->', traceless[i], traceless[j])
+            invariants.append(frob_val)
+            labels.append(f'frob_T{i}_T{j}')
+
+    return np.array(invariants, dtype=np.float64), labels
+
+
+def _degree2_contractions(decomposed):
+    """Compute all degree-2 basis invariants.
+
+    Combines vector dot products (10) and Frobenius inner products (21)
+    for a total of 31 degree-2 invariants.
+
+    Parameters
+    ----------
+    decomposed : dict
+        Output from decompose_all().
+
+    Returns
+    -------
+    invariants : np.ndarray, shape (31,)
+        The degree-2 basis invariants.
+    labels : list of str
+        Human-readable labels matching the invariant positions.
+    """
+    dot_inv, dot_labels = _vector_dot_products(decomposed)
+    frob_inv, frob_labels = _frobenius_inner_products(decomposed)
+
+    invariants = np.concatenate([dot_inv, frob_inv])
+    labels = dot_labels + frob_labels
+
+    return invariants, labels
