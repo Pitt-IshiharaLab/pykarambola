@@ -44,6 +44,10 @@ SCALARS = ['w000', 'w100', 'w200', 'w300']
 VECTORS = ['w010', 'w110', 'w210', 'w310']
 RANK2_TENSORS = ['w020', 'w120', 'w220', 'w320', 'w102', 'w202']
 
+# Derived counts — update automatically when VECTORS/RANK2_TENSORS grow
+_NV = len(VECTORS)        # number of vectors (currently 4)
+_NT = len(RANK2_TENSORS)  # number of rank-2 tensors (currently 6)
+
 # Identity matrix for traceless decomposition
 _I3 = np.eye(3, dtype=np.float64)
 
@@ -233,13 +237,10 @@ def _degree1_scalars(decomposed):
 # Degree-2 Invariants (Dot Products & Frobenius Inner Products)
 # -----------------------------------------------------------------------------
 
-# Short aliases for vectors (v0-v3) and traceless tensors (T0-T5)
-_VECTOR_ALIASES = {
-    'v0': 'w010', 'v1': 'w110', 'v2': 'w210', 'v3': 'w310'
-}
-_TRACELESS_ALIASES = {
-    'T0': 'w020', 'T1': 'w120', 'T2': 'w220', 'T3': 'w320', 'T4': 'w102', 'T5': 'w202'
-}
+# Short aliases for vectors (v0, v1, …) and traceless tensors (T0, T1, …)
+# Derived from VECTORS / RANK2_TENSORS so they stay correct when those lists grow.
+_VECTOR_ALIASES = {f'v{i}': name for i, name in enumerate(VECTORS)}
+_TRACELESS_ALIASES = {f'T{i}': name for i, name in enumerate(RANK2_TENSORS)}
 
 
 def _vector_dot_products(decomposed):
@@ -263,16 +264,13 @@ def _vector_dot_products(decomposed):
     since ||Rv|| = ||v|| for any rotation R.
     """
     # Extract vectors in deterministic order
-    vectors = []
-    for alias in ['v0', 'v1', 'v2', 'v3']:
-        name = _VECTOR_ALIASES[alias]
-        vectors.append(decomposed[(name, '1o')])
+    vectors = [decomposed[(_VECTOR_ALIASES[f'v{i}'], '1o')] for i in range(_NV)]
 
-    # Compute dot products for all i <= j (10 pairs)
+    # Compute dot products for all i <= j
     invariants = []
     labels = []
-    for i in range(4):
-        for j in range(i, 4):
+    for i in range(_NV):
+        for j in range(i, _NV):
             dot_val = np.dot(vectors[i], vectors[j])
             invariants.append(dot_val)
             labels.append(f'dot_v{i}_v{j}')
@@ -301,16 +299,13 @@ def _frobenius_inner_products(decomposed):
     For symmetric traceless matrices T_i, T_j, this equals Tr(T_i T_j).
     """
     # Extract traceless tensors in deterministic order
-    traceless = []
-    for alias in ['T0', 'T1', 'T2', 'T3', 'T4', 'T5']:
-        name = _TRACELESS_ALIASES[alias]
-        traceless.append(decomposed[(name, '2e')])
+    traceless = [decomposed[(_TRACELESS_ALIASES[f'T{i}'], '2e')] for i in range(_NT)]
 
-    # Compute Frobenius inner products for all i <= j (21 pairs)
+    # Compute Frobenius inner products for all i <= j
     invariants = []
     labels = []
-    for i in range(6):
-        for j in range(i, 6):
+    for i in range(_NT):
+        for j in range(i, _NT):
             # Frobenius inner product: Tr(T_i^T @ T_j) = sum of element-wise products
             frob_val = np.einsum('ij,ij->', traceless[i], traceless[j])
             invariants.append(frob_val)
@@ -376,18 +371,18 @@ def _quadratic_forms(decomposed):
     This contraction is O(3)-invariant (invariant under rotations and reflections).
     """
     # Extract vectors and traceless tensors
-    vectors = [decomposed[(_VECTOR_ALIASES[f'v{i}'], '1o')] for i in range(4)]
-    traceless = [decomposed[(_TRACELESS_ALIASES[f'T{k}'], '2e')] for k in range(6)]
+    vectors = [decomposed[(_VECTOR_ALIASES[f'v{i}'], '1o')] for i in range(_NV)]
+    traceless = [decomposed[(_TRACELESS_ALIASES[f'T{k}'], '2e')] for k in range(_NT)]
 
     invariants = []
     labels = []
 
     # For each traceless matrix T_k
-    for k in range(6):
+    for k in range(_NT):
         T_k = traceless[k]
         # For each vector pair (v_i, v_j) with i <= j
-        for i in range(4):
-            for j in range(i, 4):
+        for i in range(_NV):
+            for j in range(i, _NV):
                 # v_i^T T_k v_j = einsum('i,ij,j->', vi, Tk, vj)
                 qf_val = np.einsum('i,ij,j->', vectors[i], T_k, vectors[j])
                 invariants.append(qf_val)
@@ -425,13 +420,13 @@ def _triple_traces(decomposed):
     combinations_with_replacement.
     """
     # Extract traceless tensors
-    traceless = [decomposed[(_TRACELESS_ALIASES[f'T{k}'], '2e')] for k in range(6)]
+    traceless = [decomposed[(_TRACELESS_ALIASES[f'T{k}'], '2e')] for k in range(_NT)]
 
     invariants = []
     labels = []
 
     # Enumerate all multisets {i,j,k} with i <= j <= k
-    for i, j, k in combinations_with_replacement(range(6), 3):
+    for i, j, k in combinations_with_replacement(range(_NT), 3):
         # Tr(T_i T_j T_k) = einsum('ij,jk,ki->', Ti, Tj, Tk)
         trace_val = np.einsum('ij,jk,ki->', traceless[i], traceless[j], traceless[k])
         invariants.append(trace_val)
@@ -496,13 +491,13 @@ def _triple_vector_determinants(decomposed):
     These pseudo-scalars detect chirality: mirror-image shapes will have
     opposite signs.
     """
-    vectors = [decomposed[(_VECTOR_ALIASES[f'v{i}'], '1o')] for i in range(4)]
+    vectors = [decomposed[(_VECTOR_ALIASES[f'v{i}'], '1o')] for i in range(_NV)]
 
     invariants = []
     labels = []
 
     # All strictly increasing triples (i < j < k)
-    for i, j, k in combinations(range(4), 3):
+    for i, j, k in combinations(range(_NV), 3):
         # det([vi, vj, vk]) = vi · (vj × vk)
         det_val = np.linalg.det(np.column_stack([vectors[i], vectors[j], vectors[k]]))
         invariants.append(det_val)
@@ -541,15 +536,15 @@ def _commutator_pseudoscalars(decomposed):
 
     These are SO(3)-invariant but change sign under reflection (pseudo-scalars).
     """
-    vectors = [decomposed[(_VECTOR_ALIASES[f'v{i}'], '1o')] for i in range(4)]
-    traceless = [decomposed[(_TRACELESS_ALIASES[f'T{k}'], '2e')] for k in range(6)]
+    vectors = [decomposed[(_VECTOR_ALIASES[f'v{i}'], '1o')] for i in range(_NV)]
+    traceless = [decomposed[(_TRACELESS_ALIASES[f'T{k}'], '2e')] for k in range(_NT)]
 
     invariants = []
     labels = []
 
     # For each off-diagonal matrix pair (a < b)
-    for a in range(6):
-        for b in range(a + 1, 6):
+    for a in range(_NT):
+        for b in range(a + 1, _NT):
             # Commutator: [T_a, T_b] = T_a @ T_b - T_b @ T_a
             comm = traceless[a] @ traceless[b] - traceless[b] @ traceless[a]
 
@@ -558,7 +553,7 @@ def _commutator_pseudoscalars(decomposed):
             axial = np.array([comm[1, 2], comm[2, 0], comm[0, 1]])
 
             # For each vector v_k
-            for k in range(4):
+            for k in range(_NV):
                 # ψ = axial · v_k
                 psi = np.dot(axial, vectors[k])
                 invariants.append(psi)
@@ -721,7 +716,24 @@ def compute_invariants(tensors_dict, max_degree=3, symmetry='SO3'):
     return np.concatenate(parts)
 
 
-def compute_invariant_labels(max_degree=3, symmetry='SO3'):
+def _make_dummy_tensors_dict():
+    """Create zero-valued tensors_dict for use in label generation.
+
+    Returns a dict with all standard tensors set to zero so that
+    ``decompose_all`` and the private invariant functions can be called
+    purely to harvest labels without needing real mesh data.
+    """
+    dummy = {}
+    for name in SCALARS:
+        dummy[name] = 0.0
+    for name in VECTORS:
+        dummy[name] = np.zeros(3, dtype=np.float64)
+    for name in RANK2_TENSORS:
+        dummy[name] = np.zeros((3, 3), dtype=np.float64)
+    return dummy
+
+
+def compute_invariant_labels(max_degree=3, symmetry='SO3', tensors_dict=None):
     """Return human-readable labels for the invariant vector.
 
     The labels are returned in a deterministic order matching the output of
@@ -733,6 +745,11 @@ def compute_invariant_labels(max_degree=3, symmetry='SO3'):
         Maximum polynomial degree for contractions (1, 2, or 3).
     symmetry : {'SO3', 'O3'}, default='SO3'
         Symmetry group ('SO3' includes pseudo-scalars, 'O3' does not).
+    tensors_dict : dict or None, default=None
+        Optional tensors dict. When provided, its keys are validated against
+        the required set (raises ``KeyError`` if any tensor is missing). The
+        values themselves are not used to generate labels; labels are always
+        derived from the full standard tensor set via ``_make_dummy_tensors_dict``.
 
     Returns
     -------
@@ -743,6 +760,8 @@ def compute_invariant_labels(max_degree=3, symmetry='SO3'):
     ------
     ValueError
         If max_degree or symmetry is invalid.
+    KeyError
+        If tensors_dict is provided but is missing a required tensor.
 
     Notes
     -----
@@ -761,43 +780,29 @@ def compute_invariant_labels(max_degree=3, symmetry='SO3'):
     if symmetry not in ('SO3', 'O3'):
         raise ValueError(f"symmetry must be 'SO3' or 'O3', got {symmetry!r}")
 
+    # Optional early validation: raises KeyError for missing tensors
+    if tensors_dict is not None:
+        decompose_all(tensors_dict)
+
+    # Build labels by calling the same private functions used by compute_invariants
+    decomposed = decompose_all(_make_dummy_tensors_dict())
+
     labels = []
 
-    # Degree 1: scalar labels
-    labels.extend(_DEGREE1_LABELS)
+    _, d1_labels = _degree1_scalars(decomposed)
+    labels.extend(d1_labels)
 
-    # Degree 2: dot product and Frobenius labels
     if max_degree >= 2:
-        # Dot products: v_i · v_j for i <= j
-        for i in range(4):
-            for j in range(i, 4):
-                labels.append(f'dot_v{i}_v{j}')
-        # Frobenius products: Tr(T_i T_j) for i <= j
-        for i in range(6):
-            for j in range(i, 6):
-                labels.append(f'frob_T{i}_T{j}')
+        _, d2_labels = _degree2_contractions(decomposed)
+        labels.extend(d2_labels)
 
-    # Degree 3: quadratic forms, triple traces, pseudo-scalars
     if max_degree >= 3:
-        # Quadratic forms: v_i^T T_k v_j
-        for k in range(6):
-            for i in range(4):
-                for j in range(i, 4):
-                    labels.append(f'qf_v{i}_T{k}_v{j}')
-        # Triple traces: Tr(T_i T_j T_k) for multisets
-        for i, j, k in combinations_with_replacement(range(6), 3):
-            labels.append(f'ttr_T{i}_T{j}_T{k}')
+        _, d3_o3_labels = _degree3_o3_contractions(decomposed)
+        labels.extend(d3_o3_labels)
 
-        # SO3-only pseudo-scalars
         if symmetry == 'SO3':
-            # Triple vector determinants
-            for i, j, k in combinations(range(4), 3):
-                labels.append(f'det_v{i}_v{j}_v{k}')
-            # Commutator pseudo-scalars
-            for a in range(6):
-                for b in range(a + 1, 6):
-                    for k in range(4):
-                        labels.append(f'comm_T{a}_T{b}_v{k}')
+            _, d3_so3_labels = _degree3_so3_only_pseudoscalars(decomposed)
+            labels.extend(d3_so3_labels)
 
     return labels
 
@@ -805,7 +810,8 @@ def compute_invariant_labels(max_degree=3, symmetry='SO3'):
 def _enumerate_invariant_contractions(symmetry='SO3'):
     """Enumerate all invariant contraction types and their counts.
 
-    This is an internal function used for documentation and validation.
+    Counts are derived from _NV and _NT so they update automatically when
+    new tensors are added to VECTORS or RANK2_TENSORS.
 
     Parameters
     ----------
@@ -816,17 +822,22 @@ def _enumerate_invariant_contractions(symmetry='SO3'):
     dict
         Mapping from contraction type name to count.
     """
+    from math import comb
+
+    ns = len(SCALARS) + len(_RANK2_INDEPENDENT_TRACES)  # degree-1 scalars
+    nv, nt = _NV, _NT
+
     counts = {
-        'degree1_scalars': 8,
-        'degree2_dot_products': 10,
-        'degree2_frobenius': 21,
-        'degree3_quadratic_forms': 60,
-        'degree3_triple_traces': 56,
+        'degree1_scalars':         ns,
+        'degree2_dot_products':    nv * (nv + 1) // 2,         # C(nv+1,2)
+        'degree2_frobenius':       nt * (nt + 1) // 2,         # C(nt+1,2)
+        'degree3_quadratic_forms': nt * nv * (nv + 1) // 2,    # nt * C(nv+1,2)
+        'degree3_triple_traces':   (nt + 2) * (nt + 1) * nt // 6,  # C(nt+2,3)
     }
 
     if symmetry == 'SO3':
-        counts['degree3_triple_vector_dets'] = 4
-        counts['degree3_commutator_pseudoscalars'] = 60
+        counts['degree3_triple_vector_dets']       = comb(nv, 3)
+        counts['degree3_commutator_pseudoscalars'] = nt * (nt - 1) // 2 * nv
 
     counts['total'] = sum(counts.values())
 
