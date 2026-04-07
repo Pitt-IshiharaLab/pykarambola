@@ -599,3 +599,235 @@ def _degree3_so3_only_pseudoscalars(decomposed):
     labels = det_labels + comm_labels
 
     return invariants, labels
+
+
+# -----------------------------------------------------------------------------
+# Public API
+# -----------------------------------------------------------------------------
+
+def compute_invariants(tensors_dict, max_degree=3, symmetry='SO3'):
+    """Compute SO(3)- or O(3)-invariant basis scalars from Minkowski tensors.
+
+    Returns the irreducible basis of invariants up to polynomial degree max_degree.
+    Polynomial combinations of basis elements (e.g., products of scalars) are NOT
+    included -- use sklearn.preprocessing.PolynomialFeatures or similar downstream
+    if you need an expanded feature vector for a linear model.
+
+    Parameters
+    ----------
+    tensors_dict : dict
+        Output from minkowski_tensors(..., compute='standard').
+        Must contain all 14 standard tensors (ranks 0-2).
+    max_degree : int, default=3
+        Maximum polynomial degree for contractions.
+        - 1: returns only scalars (8 invariants)
+        - 2: adds vector dot products and Frobenius products (39 invariants)
+        - 3: adds quadratic forms, triple traces, and (for SO3) pseudo-scalars
+    symmetry : {'SO3', 'O3'}, default='SO3'
+        - 'O3': Invariant under rotations and reflections (chirality-blind).
+                Returns 155 invariants at max_degree=3.
+        - 'SO3': Invariant under rotations only; includes pseudo-scalars that
+                 distinguish mirror-image shapes. Returns 219 invariants at
+                 max_degree=3. Relevant for chiral biological structures.
+
+    Returns
+    -------
+    np.ndarray
+        Basis invariant vector.
+        - max_degree=1: 8 invariants
+        - max_degree=2: 39 invariants
+        - max_degree=3, symmetry='O3': 155 invariants
+        - max_degree=3, symmetry='SO3': 219 invariants
+
+    Raises
+    ------
+    ValueError
+        If max_degree is not 1, 2, or 3, or if symmetry is not 'SO3' or 'O3'.
+    KeyError
+        If required tensors are missing from tensors_dict.
+
+    Notes
+    -----
+    This function performs pure algebraic contractions on whatever tensor values
+    it receives. The choice of reference point is the caller's responsibility,
+    made upstream via ``minkowski_tensors(center=...)``.
+
+    **Translation covariance**: Invariants involving translation-covariant
+    tensors (w010-w310, w020-w320) are translation-covariant: different
+    ``center`` choices produce different invariant vectors. Callers must use
+    a consistent ``center`` across all shapes being compared.
+
+    **Invalid center mode**: ``center='reference_centroid'`` must NOT be passed
+    to ``minkowski_tensors()`` before calling this function. That mode applies
+    a different shift to each rank-2 tensor while leaving rank-1 tensors at the
+    origin, so the tensors live in inconsistent frames and their contractions
+    are geometrically undefined.
+
+    **Translation-invariant subset**: The following invariants are built
+    exclusively from translation-invariant tensors (w000, w100, w200, w300,
+    w102, w202) and are unaffected by the center choice:
+    - s0-s3 (4 scalars)
+    - frob_T4_T4, frob_T4_T5, frob_T5_T5 (3 Frobenius products)
+    - Triple traces involving only T4, T5
+
+    **Normalization**: For geometry-based analysis (size is informative), apply
+    per-feature standardization across the dataset. For shape analysis
+    (scale-invariant), first normalize each invariant per object by an
+    appropriate power of a chosen length scale (e.g., W_0^(1/3) from volume),
+    then apply per-feature standardization.
+
+    References
+    ----------
+    - Geiger & Smidt (2022). "e3nn: Euclidean Neural Networks" -- SO(3) irreps
+    - Mecke & Schroeder-Turk. "Minkowski Tensor Shape Analysis"
+
+    Examples
+    --------
+    >>> from pykarambola import minkowski_tensors
+    >>> from pykarambola.invariants import compute_invariants
+    >>> tensors = minkowski_tensors(verts, faces, compute='standard')
+    >>> inv_o3 = compute_invariants(tensors, symmetry='O3')  # 155 features
+    >>> inv_so3 = compute_invariants(tensors, symmetry='SO3')  # 219 features
+    """
+    if max_degree not in (1, 2, 3):
+        raise ValueError(f"max_degree must be 1, 2, or 3, got {max_degree}")
+    if symmetry not in ('SO3', 'O3'):
+        raise ValueError(f"symmetry must be 'SO3' or 'O3', got {symmetry!r}")
+
+    # Decompose into irreducible components
+    decomposed = decompose_all(tensors_dict)
+
+    # Build invariant vector incrementally
+    parts = []
+
+    # Degree 1: scalars
+    scalars, _ = _degree1_scalars(decomposed)
+    parts.append(scalars)
+
+    # Degree 2: dot products and Frobenius inner products
+    if max_degree >= 2:
+        degree2, _ = _degree2_contractions(decomposed)
+        parts.append(degree2)
+
+    # Degree 3: quadratic forms, triple traces, and (SO3 only) pseudo-scalars
+    if max_degree >= 3:
+        degree3_o3, _ = _degree3_o3_contractions(decomposed)
+        parts.append(degree3_o3)
+
+        if symmetry == 'SO3':
+            degree3_so3, _ = _degree3_so3_only_pseudoscalars(decomposed)
+            parts.append(degree3_so3)
+
+    return np.concatenate(parts)
+
+
+def compute_invariant_labels(max_degree=3, symmetry='SO3'):
+    """Return human-readable labels for the invariant vector.
+
+    The labels are returned in a deterministic order matching the output of
+    ``compute_invariants()`` with the same parameters.
+
+    Parameters
+    ----------
+    max_degree : int, default=3
+        Maximum polynomial degree for contractions (1, 2, or 3).
+    symmetry : {'SO3', 'O3'}, default='SO3'
+        Symmetry group ('SO3' includes pseudo-scalars, 'O3' does not).
+
+    Returns
+    -------
+    list of str
+        Human-readable labels matching the invariant positions.
+
+    Raises
+    ------
+    ValueError
+        If max_degree or symmetry is invalid.
+
+    Notes
+    -----
+    Labels follow a consistent naming convention:
+    - Degree-1: 's0_w000', 's1_w100', ..., 's7_tr_w320'
+    - Degree-2 dots: 'dot_v0_v0', 'dot_v0_v1', ...
+    - Degree-2 Frobenius: 'frob_T0_T0', 'frob_T0_T1', ...
+    - Degree-3 quadratic forms: 'qf_v0_T0_v0', 'qf_v0_T0_v1', ...
+    - Degree-3 triple traces: 'ttr_T0_T0_T0', 'ttr_T0_T0_T1', ...
+    - Degree-3 pseudo-scalars (SO3 only): 'det_v0_v1_v2', 'comm_T0_T1_v0', ...
+
+    The ordering is stable across Python sessions and versions.
+    """
+    if max_degree not in (1, 2, 3):
+        raise ValueError(f"max_degree must be 1, 2, or 3, got {max_degree}")
+    if symmetry not in ('SO3', 'O3'):
+        raise ValueError(f"symmetry must be 'SO3' or 'O3', got {symmetry!r}")
+
+    labels = []
+
+    # Degree 1: scalar labels
+    labels.extend(_DEGREE1_LABELS)
+
+    # Degree 2: dot product and Frobenius labels
+    if max_degree >= 2:
+        # Dot products: v_i · v_j for i <= j
+        for i in range(4):
+            for j in range(i, 4):
+                labels.append(f'dot_v{i}_v{j}')
+        # Frobenius products: Tr(T_i T_j) for i <= j
+        for i in range(6):
+            for j in range(i, 6):
+                labels.append(f'frob_T{i}_T{j}')
+
+    # Degree 3: quadratic forms, triple traces, pseudo-scalars
+    if max_degree >= 3:
+        # Quadratic forms: v_i^T T_k v_j
+        for k in range(6):
+            for i in range(4):
+                for j in range(i, 4):
+                    labels.append(f'qf_v{i}_T{k}_v{j}')
+        # Triple traces: Tr(T_i T_j T_k) for multisets
+        for i, j, k in combinations_with_replacement(range(6), 3):
+            labels.append(f'ttr_T{i}_T{j}_T{k}')
+
+        # SO3-only pseudo-scalars
+        if symmetry == 'SO3':
+            # Triple vector determinants
+            for i, j, k in combinations(range(4), 3):
+                labels.append(f'det_v{i}_v{j}_v{k}')
+            # Commutator pseudo-scalars
+            for a in range(6):
+                for b in range(a + 1, 6):
+                    for k in range(4):
+                        labels.append(f'comm_T{a}_T{b}_v{k}')
+
+    return labels
+
+
+def _enumerate_invariant_contractions(symmetry='SO3'):
+    """Enumerate all invariant contraction types and their counts.
+
+    This is an internal function used for documentation and validation.
+
+    Parameters
+    ----------
+    symmetry : {'SO3', 'O3'}, default='SO3'
+
+    Returns
+    -------
+    dict
+        Mapping from contraction type name to count.
+    """
+    counts = {
+        'degree1_scalars': 8,
+        'degree2_dot_products': 10,
+        'degree2_frobenius': 21,
+        'degree3_quadratic_forms': 60,
+        'degree3_triple_traces': 56,
+    }
+
+    if symmetry == 'SO3':
+        counts['degree3_triple_vector_dets'] = 4
+        counts['degree3_commutator_pseudoscalars'] = 60
+
+    counts['total'] = sum(counts.values())
+
+    return counts
