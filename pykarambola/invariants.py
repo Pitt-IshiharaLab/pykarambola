@@ -68,9 +68,13 @@ def _trace_rank2(M: np.ndarray) -> float:
 
 
 def _traceless_rank2(M: np.ndarray) -> np.ndarray:
-    """Compute the 2e (traceless) component of a rank-2 tensor: M - (Tr(M)/3) I."""
-    trace_over_3 = np.trace(M) / 3.0
-    return M - trace_over_3 * np.eye(3)
+    """Compute the 2e (traceless symmetric) component of a rank-2 tensor.
+
+    The input is first symmetrized, then the traceless part is extracted.
+    """
+    M_sym = (M + M.T) / 2.0
+    trace_over_3 = np.trace(M_sym) / 3.0
+    return M_sym - trace_over_3 * np.eye(3)
 
 
 def decompose_all(tensors_dict: dict[str, np.ndarray | float]) -> dict[tuple[str, str], np.ndarray | float]:
