@@ -344,3 +344,124 @@ def _degree2_contractions(decomposed):
     labels = dot_labels + frob_labels
 
     return invariants, labels
+
+
+# -----------------------------------------------------------------------------
+# Degree-3 O(3) Invariants (Quadratic Forms & Triple Traces)
+# -----------------------------------------------------------------------------
+
+def _quadratic_forms(decomposed):
+    """Compute degree-3 quadratic form invariants v_i^T T_k v_j for i <= j.
+
+    Parameters
+    ----------
+    decomposed : dict
+        Output from decompose_all().
+
+    Returns
+    -------
+    invariants : np.ndarray, shape (60,)
+        The 60 quadratic form invariants.
+    labels : list of str
+        Human-readable labels.
+
+    Notes
+    -----
+    For each of the 6 traceless matrices T_k and 10 symmetric vector pairs
+    (v_i, v_j) with i <= j, compute v_i^T T_k v_j.
+
+    Since T_k is symmetric, v_i^T T_k v_j = v_j^T T_k v_i, so the i <= j
+    constraint avoids double-counting.
+
+    This contraction is O(3)-invariant (invariant under rotations and reflections).
+    """
+    # Extract vectors and traceless tensors
+    vectors = [decomposed[(_VECTOR_ALIASES[f'v{i}'], '1o')] for i in range(4)]
+    traceless = [decomposed[(_TRACELESS_ALIASES[f'T{k}'], '2e')] for k in range(6)]
+
+    invariants = []
+    labels = []
+
+    # For each traceless matrix T_k
+    for k in range(6):
+        T_k = traceless[k]
+        # For each vector pair (v_i, v_j) with i <= j
+        for i in range(4):
+            for j in range(i, 4):
+                # v_i^T T_k v_j = einsum('i,ij,j->', vi, Tk, vj)
+                qf_val = np.einsum('i,ij,j->', vectors[i], T_k, vectors[j])
+                invariants.append(qf_val)
+                labels.append(f'qf_v{i}_T{k}_v{j}')
+
+    return np.array(invariants, dtype=np.float64), labels
+
+
+def _triple_traces(decomposed):
+    """Compute degree-3 triple matrix trace invariants Tr(T_i T_j T_k).
+
+    Parameters
+    ----------
+    decomposed : dict
+        Output from decompose_all().
+
+    Returns
+    -------
+    invariants : np.ndarray, shape (56,)
+        The 56 triple trace invariants.
+    labels : list of str
+        Human-readable labels.
+
+    Notes
+    -----
+    The contraction Tr(T_i T_j T_k) is symmetric under:
+    - Cyclic shifts: Tr(ABC) = Tr(BCA) = Tr(CAB)
+    - Reversal: Tr(ABC) = Tr(CBA) for symmetric matrices
+
+    These symmetries generate the full S_3 group (order 6), so the number of
+    distinct invariants is C(n+2,3) = n(n+1)(n+2)/6 for n tensors.
+    For n=6: C(8,3) = 56 exactly (Open Q#2 resolution).
+
+    We enumerate all multisets of size 3 from {0,1,2,3,4,5} using
+    combinations_with_replacement.
+    """
+    # Extract traceless tensors
+    traceless = [decomposed[(_TRACELESS_ALIASES[f'T{k}'], '2e')] for k in range(6)]
+
+    invariants = []
+    labels = []
+
+    # Enumerate all multisets {i,j,k} with i <= j <= k
+    for i, j, k in combinations_with_replacement(range(6), 3):
+        # Tr(T_i T_j T_k) = einsum('ij,jk,ki->', Ti, Tj, Tk)
+        trace_val = np.einsum('ij,jk,ki->', traceless[i], traceless[j], traceless[k])
+        invariants.append(trace_val)
+        labels.append(f'ttr_T{i}_T{j}_T{k}')
+
+    return np.array(invariants, dtype=np.float64), labels
+
+
+def _degree3_o3_contractions(decomposed):
+    """Compute all degree-3 O(3)-invariant basis contractions.
+
+    Combines quadratic forms (60) and triple traces (56) for a total of 116
+    degree-3 invariants that are invariant under both rotations and reflections.
+
+    Parameters
+    ----------
+    decomposed : dict
+        Output from decompose_all().
+
+    Returns
+    -------
+    invariants : np.ndarray, shape (116,)
+        The degree-3 O(3)-invariant basis.
+    labels : list of str
+        Human-readable labels matching the invariant positions.
+    """
+    qf_inv, qf_labels = _quadratic_forms(decomposed)
+    ttr_inv, ttr_labels = _triple_traces(decomposed)
+
+    invariants = np.concatenate([qf_inv, ttr_inv])
+    labels = qf_labels + ttr_labels
+
+    return invariants, labels
