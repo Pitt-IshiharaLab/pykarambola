@@ -57,19 +57,6 @@ SCALAR_COLS = ['w000', 'w100', 'w200', 'w300']
 VECTOR_TENSORS = ['w010', 'w110', 'w210', 'w310']
 MATRIX_TENSORS = ['w020', 'w120', 'w220', 'w320', 'w102', 'w202']
 
-# Baseline feature columns (raw tensors without eigenvalues)
-BASELINE_TENSOR_COLS = (
-    SCALAR_COLS +
-    [f'{v}_{i}' for v in VECTOR_TENSORS for i in range(3)] +
-    [f'{m}_{i}{j}' for m in MATRIX_TENSORS for i, j in [(0,0), (0,1), (0,2), (1,1), (1,2), (2,2)]]
-)
-
-# Columns for eigenvalue-augmented baseline
-EIGEN_COLS = [
-    f'{m}_EVal{i}' for m in ['w020', 'w102', 'w120', 'w202', 'w220', 'w320'] for i in [1, 2, 3]
-]
-BETA_COLS = [f'beta_{m}' for m in ['w020', 'w102', 'w120', 'w202', 'w220', 'w320']]
-
 
 def reconstruct_tensors(row: pd.Series) -> dict[str, np.ndarray | float]:
     """Reconstruct tensor dict from a flattened CSV row."""
@@ -129,13 +116,21 @@ def build_invariant_features(
 
 
 def build_baseline_features(df: pd.DataFrame, include_eigen: bool = False) -> tuple[np.ndarray, list[str]]:
-    """Extract baseline raw tensor features."""
-    cols = BASELINE_TENSOR_COLS.copy()
-    if include_eigen:
-        cols = cols + BETA_COLS + EIGEN_COLS
+    """Extract baseline raw tensor features.
 
-    # Filter to columns that exist
-    cols = [c for c in cols if c in df.columns]
+    Matches minkowski_classifier approach: use all columns from index 3+,
+    optionally filtering out beta/EVal columns.
+    """
+    # Get all feature columns (skip image_num, label, subfolder)
+    all_feature_cols = df.columns[3:].tolist()
+
+    if include_eigen:
+        # tensors_with_eigen_values: use all columns
+        cols = all_feature_cols
+    else:
+        # tensors: filter out beta and EVal columns
+        cols = [c for c in all_feature_cols if 'beta' not in c and 'EVal' not in c]
+
     X = df[cols].values
     return X, cols
 
@@ -301,7 +296,7 @@ def load_data(csv_path: str) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     df = pd.read_csv(csv_path)
 
     train_df = df[df['subfolder'] == 'train'].copy()
-    val_df = df[df['subfolder'] == 'val'].copy()
+    val_df = df[df['subfolder'].isin(['val', 'validation'])].copy()
     test_df = df[df['subfolder'] == 'test'].copy()
 
     return train_df, val_df, test_df
