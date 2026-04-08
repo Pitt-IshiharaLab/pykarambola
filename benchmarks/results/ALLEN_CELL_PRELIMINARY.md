@@ -2,9 +2,9 @@
 
 ## Overview
 
-Preliminary benchmark comparing SO(3) invariants against raw Minkowski tensor baselines on Allen Cell mitotic nuclei. Results use **default hyperparameters** (PCA=10, RBF kernel, C=1) — no Bayesian optimization. These are directional only; optimized results are needed for fair comparison.
+Preliminary benchmark comparing SO(3) invariants, raw Minkowski tensor baselines, and spherical harmonics (SPHARM) on Allen Cell mitotic nuclei. Results use **default hyperparameters** (PCA=10, RBF kernel, C=1) — no Bayesian optimization. These are directional only; optimized results are needed for fair comparison.
 
-**Core question**: Do SO(3) invariants improve 6-class mitotic stage classification compared to raw tensor components?
+**Core question**: Do SO(3) invariants improve 6-class mitotic stage classification compared to raw tensor components and spherical harmonics?
 
 ---
 
@@ -21,8 +21,6 @@ Preliminary benchmark comparing SO(3) invariants against raw Minkowski tensor ba
 
 ### Dataset pair used
 
-Both datasets use `minkowski_tensors_with_eigen_vals.csv` from their respective directories:
-
 | Dataset | Path | Description |
 |---------|------|-------------|
 | **Non-rotated** | `nuclei/` | Original orientations from imaging |
@@ -37,13 +35,24 @@ Tr(w020), Tr(w020)/w000, Tr(w102), Tr(w120), Tr(w120)/w100,
 Tr(w202), Tr(w220), Tr(w220)/w200, Tr(w320), Tr(w320)/w300
 ```
 
-These are rotation-invariant scalar features (traces and normalised traces of rank-2 tensors) that would give the non-rotated baselines a structural advantage. They were **excluded from all runs** to ensure a fair comparison. After exclusion, both datasets use identical feature sets:
+These are rotation-invariant scalar features (traces and normalised traces of rank-2 tensors) that would give the non-rotated baselines a structural advantage. They were **excluded from all runs** to ensure a fair comparison. After exclusion, both datasets use identical Minkowski tensor feature sets:
 
 | Feature Set | # Features used | # Excluded |
 |-------------|----------------|------------|
 | Baseline (tensors) | 52 | 10 trace columns |
 | Baseline (w/ eigen) | 76 | 10 trace columns |
 | SO3 Degree 1–3 | 8 / 39 / 219 | 0 (unaffected) |
+
+### Spherical harmonics availability
+
+SPHARM files are not fully symmetric across datasets:
+
+| File | Non-rotated | XY-aligned | # Features |
+|------|-------------|------------|------------|
+| `spherical_harmonics_lmax_5.csv` | ✅ | ❌ | 72 |
+| `spherical_harmonics_lmax_16_with_watertight.csv` | ✅ | ✅ | 578 |
+
+SPHARM lmax=5 was therefore only evaluated on the non-rotated dataset.
 
 ---
 
@@ -58,6 +67,8 @@ These are rotation-invariant scalar features (traces and normalised traces of ra
 | 3 | SO3 Degree 1 | 8 | 0.703 ± 0.004 | 0.688 ± 0.004 |
 | 4 | Baseline (tensors) | 52 | 0.685 ± 0.003 | 0.664 ± 0.006 |
 | 5 | SO3 Degree 3 | 219 | 0.647 ± 0.001 | 0.636 ± 0.000 |
+| 6 | SPHARM lmax=5 | 72 | 0.620 ± 0.003 | 0.615 ± 0.003 |
+| 7 | SPHARM lmax=16 | 578 | 0.613 ± 0.003 | 0.588 ± 0.004 |
 
 ### XY-aligned nuclei (unoptimized, PCA=10)
 
@@ -68,6 +79,7 @@ These are rotation-invariant scalar features (traces and normalised traces of ra
 | 3 | SO3 Degree 2 | 39 | 0.708 ± 0.001 | 0.696 ± 0.000 |
 | 4 | SO3 Degree 1 | 8 | 0.703 ± 0.004 | 0.688 ± 0.004 |
 | 5 | SO3 Degree 3 | 219 | 0.637 ± 0.003 | 0.625 ± 0.003 |
+| 6 | SPHARM lmax=16 | 578 | 0.603 ± 0.008 | 0.574 ± 0.012 |
 
 ---
 
@@ -80,45 +92,42 @@ These are rotation-invariant scalar features (traces and normalised traces of ra
 | SO3 Degree 1 | 0.703 | 0.703 | 0.000 |
 | SO3 Degree 2 | 0.715 | 0.708 | −0.007 |
 | SO3 Degree 3 | 0.647 | 0.637 | −0.010 |
+| SPHARM lmax=16 | 0.613 | 0.603 | −0.010 |
 
 ---
 
-## Interpretation: Does XY Alignment Explain the Observations?
+## Interpretation
 
-**Yes.** Aligning the long axis of each nucleus to the x-axis (rotation in XY plane) places all objects in a partially canonical reference frame. This has opposite effects on raw tensor features vs SO3 invariants:
+### XY alignment explains the baseline improvement (+3–5%)
 
-### Raw tensor baselines improve (+3–5%)
+Aligning the long axis of each nucleus to the x-axis places all objects in a partially canonical reference frame. Minkowski tensor components encode **both shape and orientation** relative to the coordinate axes, so consistent alignment makes them more discriminative. After XY alignment:
 
-Minkowski tensor components encode **both shape and orientation** relative to the coordinate axes. When nuclei are randomly oriented (non-rotated dataset), the same mitotic stage can appear as very different tensor components depending on viewing angle. After XY alignment:
+- Baseline (tensors) improves by +5.1%, Baseline (w/ eigen) by +2.6%
+- Raw tensor components now carry consistent orientation signal in addition to shape
 
-- The principal axis direction is standardised to the x-axis in the XY plane
-- Tensor components such as the diagonal entries of `w020` become consistently interpretable across samples
-- The classifier can exploit the now-consistent orientation signal in addition to shape
-- Result: Baseline (tensors) improves by +5.1%, Baseline (w/ eigen) by +2.6%
+### SO3 invariants are unaffected by rotation (Δ ≈ 0)
 
-### SO3 invariants are unaffected (Δ ≈ 0)
+SO3 invariants are **rotation-invariant by construction**. Degree 1 is identical to 3 d.p. across both datasets; Degree 2/3 differ by ≤ 0.010, within seed noise. This confirms the invariant implementation is correct.
 
-SO3 invariants are **rotation-invariant by construction** — the same invariant values are produced regardless of orientation. Alignment provides no additional information to an SO3-invariant feature set.
+**Key implication**: In the non-rotated setting, SO3 Degree 2 outperforms Baseline (tensors) (0.715 vs 0.685) — the invariants extract shape information that raw tensors obscure with pose noise. SO3 invariants achieve this without requiring any pre-alignment step.
 
-- Degree 1: identical to 3 d.p. (0.703 both)
-- Degree 2/3: differ by ≤ 0.010, within seed noise
+### SPHARM is severely penalised by PCA=10
 
-This serves as an empirical confirmation that the invariant implementation is correct.
+SPHARM ranks last on both datasets, but this is largely an artefact of the default PCA=10:
 
-### Key implication
+| Feature Set | # Features | PCA compression |
+|-------------|------------|-----------------|
+| SPHARM lmax=5 | 72 | 72 → 10 (86%) discarded) |
+| SPHARM lmax=16 | 578 | 578 → 10 (98% discarded) |
+| SO3 Degree 2 | 39 | 39 → 10 (74% discarded) |
 
-In the non-rotated setting, SO3 Degree 2 **outperforms** Baseline (tensors) (0.715 vs 0.685) — the invariants extract shape information that the raw tensors obscure with pose noise. In the XY-aligned setting, the alignment partially compensates for this, allowing raw tensors to recover (+5%), while SO3 invariants have no room to improve.
-
-**SO3 invariants achieve rotation-robust performance without requiring any pre-alignment step.** This is practically valuable: alignment requires knowledge of object geometry and a normalisation pipeline, whereas SO3 invariants work directly from tensors regardless of pose.
+SPHARM lmax=5 (72 features) slightly outperforms lmax=16 (578 features) on non-rotated data (0.620 vs 0.613) — expected, since lmax=16 suffers greater relative compression. SPHARM results are the most unreliable of all feature sets until optimization.
 
 ---
 
 ## Caveats: Why These Results Are Preliminary
 
-All feature sets evaluated with identical default parameters (PCA=10, RBF, C=1):
-
-- **SO3 Degree 3** (219 features → 10 PCA components): extreme compression, results unreliable
-- All feature sets benefit from tuned PCA, kernel, and C (MedMNIST showed rankings can flip after optimization)
+All feature sets evaluated with identical default parameters (PCA=10, RBF, C=1). The MedMNIST benchmarks showed that optimization substantially changes rankings (e.g., SO3 Degree 2 jumped from near-worst to best on adrenal3d after optimization). SPHARM in particular requires a much larger PCA budget to be fairly evaluated.
 
 **These preliminary results should not be used to draw final conclusions about relative feature set quality.**
 
@@ -126,5 +135,5 @@ All feature sets evaluated with identical default parameters (PCA=10, RBF, C=1):
 
 ## Next Steps
 
-- Run full Bayesian optimization (n_iter=50) on the XY-aligned dataset
-- The XY-aligned dataset is the cleaner test: baselines benefit from consistent orientation, making it a harder challenge for SO3 invariants to match or beat them
+- Run full Bayesian optimization (n_iter=50) on both datasets with all feature sets including SPHARM
+- The XY-aligned dataset with optimization is the most informative test: baselines benefit from consistent orientation, making it a harder challenge for rotation-invariant methods

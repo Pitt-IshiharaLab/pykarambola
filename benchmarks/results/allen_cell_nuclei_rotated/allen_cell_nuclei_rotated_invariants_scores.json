@@ -107,5 +107,17 @@
       "mean": 0.6253261593028795,
       "std": 0.002587276297550888
     }
+  },
+  "SPHARM lmax=16": {
+    "n_features": 578,
+    "feature_names": "578 features",
+    "balanced_accuracy": {
+      "mean": 0.6030648088246128,
+      "std": 0.007540101127692122
+    },
+    "geometric_mean": {
+      "mean": 0.573868430480024,
+      "std": 0.011807098072619608
+    }
   }
 }

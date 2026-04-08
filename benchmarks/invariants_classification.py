@@ -115,6 +115,21 @@ def build_invariant_features(
     return X, feature_names
 
 
+def build_spharm_features(
+    df: pd.DataFrame,
+    spharm_df: pd.DataFrame,
+    exclude_watertight: bool = True,
+) -> tuple[np.ndarray, list[str]]:
+    """Extract spherical harmonics features, joined to df by image_num."""
+    merged = df[['image_num']].merge(spharm_df, on='image_num', how='left')
+    cols = [c for c in spharm_df.columns if c.startswith('shcoeffs_')]
+    if not exclude_watertight:
+        wt = [c for c in spharm_df.columns if c == 'watertight_components']
+        cols = cols + wt
+    X = merged[cols].values
+    return X, cols
+
+
 def build_baseline_features(df: pd.DataFrame, include_eigen: bool = False) -> tuple[np.ndarray, list[str]]:
     """Extract baseline raw tensor features.
 
@@ -305,6 +320,7 @@ def load_data(csv_path: str) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
 def main():
     parser = argparse.ArgumentParser(description='Benchmark SO(3) invariants for classification')
     parser.add_argument('--input', type=str, required=True, help='Path to CSV with Minkowski tensors')
+    parser.add_argument('--spharm-input', type=str, action='append', default=None, help='Path to spherical harmonics CSV (repeatable)')
     parser.add_argument('--output', type=str, default='benchmarks/results', help='Output directory')
     parser.add_argument('--optimize', action='store_true', help='Run Bayesian optimization')
     parser.add_argument('--n_iter', type=int, default=50, help='Optimization iterations')
@@ -324,6 +340,15 @@ def main():
     print(f"Train: {len(train_df)} samples, Test: {len(test_df)} samples")
     print(f"Class distribution (train): {np.bincount(y_train)}")
 
+    # Load spherical harmonics data if provided (one entry per --spharm-input)
+    spharm_entries = []  # list of (name, df)
+    for spharm_path in (args.spharm_input or []):
+        stem = Path(spharm_path).stem  # e.g. spherical_harmonics_lmax_5
+        lmax = next((p.split('_')[-1] for p in stem.split('_') if p.isdigit()), stem)
+        name = f'SPHARM lmax={lmax}'
+        print(f"Loading {name} from {spharm_path}...")
+        spharm_entries.append((name, pd.read_csv(spharm_path)))
+
     # Define feature sets to evaluate
     feature_sets = [
         ('Baseline (tensors)', lambda df: build_baseline_features(df, include_eigen=False)),
@@ -332,6 +357,11 @@ def main():
         ('SO3 Degree 2', lambda df: build_invariant_features(df, max_degree=2)),
         ('SO3 Degree 3', lambda df: build_invariant_features(df, max_degree=3)),
     ]
+
+    for spharm_name, spharm_df in spharm_entries:
+        feature_sets.append(
+            (spharm_name, lambda df, s=spharm_df: build_spharm_features(df, s))
+        )
 
     all_results = {}
     all_hyperparams = {}

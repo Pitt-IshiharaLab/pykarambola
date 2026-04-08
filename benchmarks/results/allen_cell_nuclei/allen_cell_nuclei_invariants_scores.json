@@ -107,5 +107,29 @@
       "mean": 0.636431878609657,
       "std": 4.147292380129328e-05
     }
+  },
+  "SPHARM lmax=5": {
+    "n_features": 72,
+    "feature_names": "72 features",
+    "balanced_accuracy": {
+      "mean": 0.6202960504431093,
+      "std": 0.0032935990282883833
+    },
+    "geometric_mean": {
+      "mean": 0.6149708947276632,
+      "std": 0.0029306273767628357
+    }
+  },
+  "SPHARM lmax=16": {
+    "n_features": 578,
+    "feature_names": "578 features",
+    "balanced_accuracy": {
+      "mean": 0.6130323059244628,
+      "std": 0.003037352223748982
+    },
+    "geometric_mean": {
+      "mean": 0.5878273980575829,
+      "std": 0.0037015505144881015
+    }
   }
 }
