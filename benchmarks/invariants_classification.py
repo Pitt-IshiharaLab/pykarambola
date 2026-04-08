@@ -125,11 +125,11 @@ def build_baseline_features(df: pd.DataFrame, include_eigen: bool = False) -> tu
     all_feature_cols = df.columns[3:].tolist()
 
     if include_eigen:
-        # tensors_with_eigen_values: use all columns
-        cols = all_feature_cols
+        # tensors_with_eigen_values: use all columns except Tr() derived columns
+        cols = [c for c in all_feature_cols if not c.startswith('Tr(')]
     else:
-        # tensors: filter out beta and EVal columns
-        cols = [c for c in all_feature_cols if 'beta' not in c and 'EVal' not in c]
+        # tensors: filter out beta, EVal, and Tr() derived columns
+        cols = [c for c in all_feature_cols if 'beta' not in c and 'EVal' not in c and not c.startswith('Tr(')]
 
     X = df[cols].values
     return X, cols
