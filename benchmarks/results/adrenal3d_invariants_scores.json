@@ -1,0 +1,111 @@
+{
+  "Baseline (tensors)": {
+    "n_features": 52,
+    "feature_names": "52 features",
+    "balanced_accuracy": {
+      "mean": 0.6660970824631353,
+      "std": 0.0
+    },
+    "geometric_mean": {
+      "mean": 0.6622058211654963,
+      "std": 0.0
+    }
+  },
+  "Baseline (w/ eigen)": {
+    "n_features": 76,
+    "feature_names": "76 features",
+    "balanced_accuracy": {
+      "mean": 0.6964749066514777,
+      "std": 0.0
+    },
+    "geometric_mean": {
+      "mean": 0.6963064924820762,
+      "std": 0.0
+    }
+  },
+  "SO3 Degree 1": {
+    "n_features": 8,
+    "feature_names": [
+      "w000",
+      "w020",
+      "w100",
+      "w120",
+      "w200",
+      "w220",
+      "w300",
+      "w320"
+    ],
+    "balanced_accuracy": {
+      "mean": 0.7493829504461743,
+      "std": 0.0
+    },
+    "geometric_mean": {
+      "mean": 0.7486460153336284,
+      "std": 0.0
+    }
+  },
+  "SO3 Degree 2": {
+    "n_features": 39,
+    "feature_names": [
+      "dot_w010_w010",
+      "dot_w010_w110",
+      "dot_w010_w210",
+      "dot_w010_w310",
+      "dot_w110_w110",
+      "dot_w110_w210",
+      "dot_w110_w310",
+      "dot_w210_w210",
+      "dot_w210_w310",
+      "dot_w310_w310",
+      "frob_w020_w020",
+      "frob_w020_w102",
+      "frob_w020_w120",
+      "frob_w020_w202",
+      "frob_w020_w220",
+      "frob_w020_w320",
+      "frob_w102_w102",
+      "frob_w102_w120",
+      "frob_w102_w202",
+      "frob_w102_w220",
+      "frob_w102_w320",
+      "frob_w120_w120",
+      "frob_w120_w202",
+      "frob_w120_w220",
+      "frob_w120_w320",
+      "frob_w202_w202",
+      "frob_w202_w220",
+      "frob_w202_w320",
+      "frob_w220_w220",
+      "frob_w220_w320",
+      "frob_w320_w320",
+      "w000",
+      "w020",
+      "w100",
+      "w120",
+      "w200",
+      "w220",
+      "w300",
+      "w320"
+    ],
+    "balanced_accuracy": {
+      "mean": 0.7522625150306943,
+      "std": 0.0
+    },
+    "geometric_mean": {
+      "mean": 0.7509250039092504,
+      "std": 0.0
+    }
+  },
+  "SO3 Degree 3": {
+    "n_features": 219,
+    "feature_names": "219 features",
+    "balanced_accuracy": {
+      "mean": 0.6499272197962154,
+      "std": 0.0
+    },
+    "geometric_mean": {
+      "mean": 0.649711614449449,
+      "std": 0.0
+    }
+  }
+}

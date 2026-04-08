@@ -16,6 +16,11 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   - Flexible input: accepts any combination of rank 0, 1, 2 tensors (not limited to the 14 standard Minkowski tensors)
   - Supports both O(3) (true scalars) and SO(3) (includes pseudo-scalars) symmetry groups
   - Automatic deduplication of linearly dependent scalars (Tr(w102)/3 = w100, Tr(w202)/3 = w200)
+- Benchmark script `benchmarks/invariants_classification.py` for comparing SO(3) invariants vs raw tensors on classification tasks (#107)
+  - Supports Bayesian hyperparameter optimization with `--optimize` flag
+  - Compares baseline tensor features against SO(3) degree 1/2/3 invariants
+  - Uses BalancedBaggingClassifier with SVM for imbalanced datasets
+- `benchmark` optional dependency group: `pip install pykarambola[benchmark]`
 
 ---
 

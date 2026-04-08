@@ -42,6 +42,7 @@ dev = ["pytest", "scikit-image"]
 accel = ["cython>=3.0"]
 glb = ["trimesh"]
 notebooks = ["scikit-image", "matplotlib", "seaborn", "pandas", "medmnist"]
+benchmark = ["scikit-learn", "imbalanced-learn", "scikit-optimize", "pandas"]
 
 [tool.setuptools.packages.find]
 include = ["pykarambola*"]
