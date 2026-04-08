@@ -18,6 +18,9 @@ import json
 import os
 import sys
 import time
+import warnings
+from sklearn.exceptions import ConvergenceWarning
+warnings.filterwarnings('ignore', category=ConvergenceWarning)
 from pathlib import Path
 
 import numpy as np
@@ -27,7 +30,7 @@ from sklearn.metrics import balanced_accuracy_score, make_scorer
 from sklearn.model_selection import StratifiedKFold
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
-from sklearn.svm import SVC
+from sklearn.svm import SVC, LinearSVC
 
 # Add parent to path for pykarambola imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -140,24 +143,28 @@ def build_baseline_features(df: pd.DataFrame, include_eigen: bool = False) -> tu
     all_feature_cols = df.columns[3:].tolist()
 
     if include_eigen:
-        # tensors_with_eigen_values: use all columns except Tr() derived columns
-        cols = [c for c in all_feature_cols if not c.startswith('Tr(')]
+        # tensors_with_eigen_values: use all columns
+        cols = all_feature_cols
     else:
-        # tensors: filter out beta, EVal, and Tr() derived columns
-        cols = [c for c in all_feature_cols if 'beta' not in c and 'EVal' not in c and not c.startswith('Tr(')]
+        # tensors: filter out beta and EVal columns
+        cols = [c for c in all_feature_cols if 'beta' not in c and 'EVal' not in c]
 
     X = df[cols].values
     return X, cols
 
 
-def create_pipeline(n_components: int, C: float, kernel: str, gamma: str,
-                    use_balanced: bool = True, random_state: int = 0, n_jobs: int = -1):
+def create_pipeline(n_components: int, C: float, kernel: str = 'rbf', gamma: str = 'scale',
+                    use_balanced: bool = True, random_state: int = 0, n_jobs: int = -1,
+                    linear_only: bool = False):
     """Create classification pipeline."""
-    svc = SVC(C=C, kernel=kernel, gamma=gamma, probability=True)
+    if linear_only:
+        estimator = LinearSVC(C=C, dual=False, max_iter=1000)
+    else:
+        estimator = SVC(C=C, kernel=kernel, gamma=gamma, probability=True)
 
     if use_balanced and HAS_IMBALANCED:
         classifier = BalancedBaggingClassifier(
-            estimator=svc,
+            estimator=estimator,
             sampling_strategy='auto',
             replacement=False,
             random_state=random_state,
@@ -166,7 +173,7 @@ def create_pipeline(n_components: int, C: float, kernel: str, gamma: str,
     else:
         from sklearn.ensemble import BaggingClassifier
         classifier = BaggingClassifier(
-            estimator=svc,
+            estimator=estimator,
             random_state=random_state,
             n_jobs=n_jobs,
         )
@@ -186,6 +193,7 @@ def optimize_hyperparams(
     random_state: int = 0,
     n_jobs: int = -1,
     verbose: int = 1,
+    linear_only: bool = False,
 ) -> dict:
     """Run Bayesian optimization to find best hyperparameters."""
     if not HAS_SKOPT:
@@ -197,26 +205,35 @@ def optimize_hyperparams(
             'classifier__estimator__gamma': 'scale',
         }
 
-    search_space = {
-        'pca__n_components': Integer(2, min(X_train.shape[1], X_train.shape[0] - 1)),
-        'classifier__estimator__C': Real(1e-1, 1e3, prior='log-uniform'),
-        'classifier__estimator__kernel': Categorical(['linear', 'rbf']),
-        'classifier__estimator__gamma': Categorical(['scale', 'auto']),
-    }
+    if linear_only:
+        # LinearSVC: only C and PCA to tune — much faster than SVC(kernel='linear')
+        search_space = {
+            'pca__n_components': Integer(2, min(X_train.shape[1], X_train.shape[0] - 1)),
+            'classifier__estimator__C': Real(1e-1, 1e3, prior='log-uniform'),
+        }
+        estimator = LinearSVC(dual=False, max_iter=1000)
+    else:
+        search_space = {
+            'pca__n_components': Integer(2, min(X_train.shape[1], X_train.shape[0] - 1)),
+            'classifier__estimator__C': Real(1e-1, 1e3, prior='log-uniform'),
+            'classifier__estimator__kernel': Categorical(['linear', 'rbf']),
+            'classifier__estimator__gamma': Categorical(['scale', 'auto']),
+        }
+        estimator = SVC()
 
-    # Create pipeline template
-    svc = SVC()
+    # n_jobs=1 for inner classifier: BayesSearchCV already parallelises CV folds
+    # via its own n_jobs; nested parallelism causes contention and slowdown.
     if HAS_IMBALANCED:
         classifier = BalancedBaggingClassifier(
-            estimator=svc,
+            estimator=estimator,
             sampling_strategy='auto',
             replacement=False,
             random_state=random_state,
-            n_jobs=n_jobs,
+            n_jobs=1,
         )
     else:
         from sklearn.ensemble import BaggingClassifier
-        classifier = BaggingClassifier(estimator=svc, random_state=random_state, n_jobs=n_jobs)
+        classifier = BaggingClassifier(estimator=estimator, random_state=random_state, n_jobs=1)
 
     pipeline = Pipeline([
         ('scaler', StandardScaler()),
@@ -254,6 +271,7 @@ def evaluate_single_run(
     params: dict,
     random_state: int = 0,
     n_jobs: int = -1,
+    linear_only: bool = False,
 ) -> dict[str, float]:
     """Train and evaluate a single run."""
     pipeline = create_pipeline(
@@ -264,6 +282,7 @@ def evaluate_single_run(
         use_balanced=True,
         random_state=random_state,
         n_jobs=n_jobs,
+        linear_only=linear_only,
     )
 
     pipeline.fit(X_train, y_train)
@@ -286,13 +305,14 @@ def run_evaluation(
     params: dict,
     n_seeds: int = 3,
     n_jobs: int = -1,
+    linear_only: bool = False,
 ) -> dict[str, tuple[float, float]]:
     """Run evaluation across multiple seeds and return mean ± std."""
     all_results = []
     for seed in range(n_seeds):
         result = evaluate_single_run(
             X_train, y_train, X_test, y_test, params,
-            random_state=seed, n_jobs=n_jobs
+            random_state=seed, n_jobs=n_jobs, linear_only=linear_only,
         )
         all_results.append(result)
 
@@ -321,15 +341,19 @@ def main():
     parser = argparse.ArgumentParser(description='Benchmark SO(3) invariants for classification')
     parser.add_argument('--input', type=str, required=True, help='Path to CSV with Minkowski tensors')
     parser.add_argument('--spharm-input', type=str, action='append', default=None, help='Path to spherical harmonics CSV (repeatable)')
+    parser.add_argument('--max-so3-degree', type=int, default=3, choices=[1, 2, 3], help='Maximum SO3 polynomial degree to evaluate (default: 3)')
     parser.add_argument('--output', type=str, default='benchmarks/results', help='Output directory')
     parser.add_argument('--optimize', action='store_true', help='Run Bayesian optimization')
     parser.add_argument('--n_iter', type=int, default=50, help='Optimization iterations')
+    parser.add_argument('--linear-only', action='store_true', help='Restrict SVM kernel search to linear only')
     parser.add_argument('--seeds', type=int, default=3, help='Number of random seeds for evaluation')
     parser.add_argument('--n_jobs', type=int, default=-1, help='Parallel jobs (-1 for all CPUs)')
     parser.add_argument('--verbose', type=int, default=1, help='Verbosity level')
     args = parser.parse_args()
 
     os.makedirs(args.output, exist_ok=True)
+
+    total_start = time.time()
 
     print("Loading data...")
     train_df, val_df, test_df = load_data(args.input)
@@ -353,10 +377,11 @@ def main():
     feature_sets = [
         ('Baseline (tensors)', lambda df: build_baseline_features(df, include_eigen=False)),
         ('Baseline (w/ eigen)', lambda df: build_baseline_features(df, include_eigen=True)),
-        ('SO3 Degree 1', lambda df: build_invariant_features(df, max_degree=1)),
-        ('SO3 Degree 2', lambda df: build_invariant_features(df, max_degree=2)),
-        ('SO3 Degree 3', lambda df: build_invariant_features(df, max_degree=3)),
     ]
+    for deg in range(1, args.max_so3_degree + 1):
+        feature_sets.append(
+            (f'SO3 Degree {deg}', lambda df, d=deg: build_invariant_features(df, max_degree=d))
+        )
 
     for spharm_name, spharm_df in spharm_entries:
         feature_sets.append(
@@ -380,6 +405,7 @@ def main():
         print(f"  Features: {X_train.shape[1]} ({build_time:.1f}s to compute)")
 
         # Optimize hyperparameters
+        opt_start = time.time()
         if args.optimize:
             print("  Optimizing hyperparameters...")
             params = optimize_hyperparams(
@@ -388,6 +414,7 @@ def main():
                 random_state=0,
                 n_jobs=args.n_jobs,
                 verbose=args.verbose,
+                linear_only=args.linear_only,
             )
         else:
             # Use defaults
@@ -397,21 +424,25 @@ def main():
                 'classifier__estimator__kernel': 'rbf',
                 'classifier__estimator__gamma': 'scale',
             }
+        opt_time = time.time() - opt_start
 
         print(f"  Params: {params}")
         all_hyperparams[name] = params
 
         # Evaluate
         print(f"  Evaluating ({args.seeds} seeds)...")
+        eval_start = time.time()
         results = run_evaluation(
             X_train, y_train, X_test, y_test, params,
-            n_seeds=args.seeds, n_jobs=args.n_jobs
+            n_seeds=args.seeds, n_jobs=args.n_jobs, linear_only=args.linear_only,
         )
+        eval_time = time.time() - eval_start
 
         all_results[name] = {
             'n_features': X_train.shape[1],
             'feature_names': feature_names if len(feature_names) <= 50 else f'{len(feature_names)} features',
             **{k: {'mean': v[0], 'std': v[1]} for k, v in results.items()},
+            'runtime_seconds': {'optimization': round(opt_time, 1), 'evaluation': round(eval_time, 1)},
         }
 
         print(f"  Results:")
@@ -436,10 +467,23 @@ def main():
     dataset_name = os.path.basename(args.output.rstrip('/')) or \
                    os.path.basename(os.path.dirname(args.input))
 
+    total_elapsed = time.time() - total_start
+    total_h = int(total_elapsed // 3600)
+    total_m = int((total_elapsed % 3600) // 60)
+    total_s = int(total_elapsed % 60)
+    print(f"\nTotal runtime: {total_h}h {total_m}m {total_s}s ({total_elapsed:.0f}s)")
+
     results_path = os.path.join(args.output, f'{dataset_name}_invariants_scores.json')
+    # Attach total runtime to saved results
+    all_results['_meta'] = {
+        'total_runtime_seconds': round(total_elapsed, 1),
+        'n_iter': args.n_iter,
+        'seeds': args.seeds,
+        'linear_only': args.linear_only,
+    }
     with open(results_path, 'w') as f:
         json.dump(all_results, f, indent=2, default=str)
-    print(f"\nResults saved to: {results_path}")
+    print(f"Results saved to: {results_path}")
 
     hyperparams_path = os.path.join(args.output, f'{dataset_name}_invariants_hyperparams.json')
     with open(hyperparams_path, 'w') as f:

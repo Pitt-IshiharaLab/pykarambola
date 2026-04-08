@@ -1,0 +1,111 @@
+{
+  "Baseline (tensors)": {
+    "n_features": 62,
+    "feature_names": "62 features",
+    "balanced_accuracy": {
+      "mean": 0.7458557121547318,
+      "std": 0.0056380192082620606
+    },
+    "geometric_mean": {
+      "mean": 0.7373392038903651,
+      "std": 0.005832840710954737
+    }
+  },
+  "Baseline (w/ eigen)": {
+    "n_features": 86,
+    "feature_names": "86 features",
+    "balanced_accuracy": {
+      "mean": 0.818100558541735,
+      "std": 0.003550997903831213
+    },
+    "geometric_mean": {
+      "mean": 0.8152800156557652,
+      "std": 0.003932537767266943
+    }
+  },
+  "SO3 Degree 1": {
+    "n_features": 8,
+    "feature_names": [
+      "w000",
+      "w020",
+      "w100",
+      "w120",
+      "w200",
+      "w220",
+      "w300",
+      "w320"
+    ],
+    "balanced_accuracy": {
+      "mean": 0.6665545925349847,
+      "std": 0.003782368193620138
+    },
+    "geometric_mean": {
+      "mean": 0.6357089445194587,
+      "std": 0.0046074720885511755
+    }
+  },
+  "SO3 Degree 2": {
+    "n_features": 39,
+    "feature_names": [
+      "dot_w010_w010",
+      "dot_w010_w110",
+      "dot_w010_w210",
+      "dot_w010_w310",
+      "dot_w110_w110",
+      "dot_w110_w210",
+      "dot_w110_w310",
+      "dot_w210_w210",
+      "dot_w210_w310",
+      "dot_w310_w310",
+      "frob_w020_w020",
+      "frob_w020_w102",
+      "frob_w020_w120",
+      "frob_w020_w202",
+      "frob_w020_w220",
+      "frob_w020_w320",
+      "frob_w102_w102",
+      "frob_w102_w120",
+      "frob_w102_w202",
+      "frob_w102_w220",
+      "frob_w102_w320",
+      "frob_w120_w120",
+      "frob_w120_w202",
+      "frob_w120_w220",
+      "frob_w120_w320",
+      "frob_w202_w202",
+      "frob_w202_w220",
+      "frob_w202_w320",
+      "frob_w220_w220",
+      "frob_w220_w320",
+      "frob_w320_w320",
+      "w000",
+      "w020",
+      "w100",
+      "w120",
+      "w200",
+      "w220",
+      "w300",
+      "w320"
+    ],
+    "balanced_accuracy": {
+      "mean": 0.7830861227920053,
+      "std": 0.0021229569142942693
+    },
+    "geometric_mean": {
+      "mean": 0.7775798061447817,
+      "std": 0.001990956976237361
+    }
+  },
+  "SPHARM lmax=5": {
+    "n_features": 72,
+    "feature_names": "72 features",
+    "balanced_accuracy": {
+      "mean": 0.5970134222585203,
+      "std": 0.00280884941777441
+    },
+    "geometric_mean": {
+      "mean": 0.5835931301200268,
+      "std": 0.004222123869429307
+    }
+  }
+}
