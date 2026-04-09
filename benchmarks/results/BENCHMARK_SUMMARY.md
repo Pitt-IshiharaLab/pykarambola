@@ -19,7 +19,7 @@ This benchmark evaluates whether SO(3) rotational invariants computed from Minko
 - `data/medmnist/adrenal3d/adrenal3d_64/minkowski_tensors_with_eigen_vals.csv`
 - `data/medmnist/vessel3d/vessel3d_64/minkowski_tensors_with_eigen_vals.csv`
 
-**Note on preprocessing**: The Minkowski tensors were computed directly from MedMNIST 3D voxel segmentations using `minkowski_tensors_from_label_image()` **without any rotation alignment or orientation normalization**. Objects retain their original orientation in the scanner/image coordinate system. This is relevant to interpreting the vessel3d results, where raw tensor components outperformed rotation-invariant features — suggesting that vessel orientation relative to the imaging axes may carry diagnostic information.
+**Note on preprocessing**: The Minkowski tensors were computed directly from MedMNIST 3D voxel segmentations using `minkowski_tensors_from_label_image()`. Before tensor computation, each object was **PCA-aligned**: the first principal component of the vertex positions (PC1, the axis of maximum spatial extent) was aligned to the x-axis. All tensor components are therefore expressed in this canonical coordinate frame, where the x-axis corresponds to the object's principal axis.
 
 **Note on centering**: Meshes were centered at their centroid before tensor computation, making **w010 = 0** for all samples. This causes some SO3 invariants to have zero variance:
 
@@ -87,23 +87,23 @@ The zero-variance features are those involving w010 (dot products, quadratic for
 
 On adrenal3d, **SO3 Degree 2 outperforms all baselines** (0.833 vs 0.821-0.826), supporting the hypothesis that rotation invariance helps classification.
 
-**Why it works**: Adrenal tumors likely vary in fundamental shape properties (volume, surface area, curvature) rather than orientation. The SO3 invariants successfully distill these properties while discarding irrelevant pose information.
+**Why it works**: Adrenal tumors likely vary in intrinsic shape properties (volume, surface area, curvature distribution) that are not strongly tied to the principal axis direction. Even after PCA alignment, the diagnostic signal is captured by rotation-invariant combinations of tensors — the axis-relative components do not add information beyond what SO3 invariants already encode.
 
 ### Where the Hypothesis Fails: vessel3d
 
 On vessel3d, **raw tensors outperform all SO3 invariants** (0.819 vs 0.794-0.798), contradicting the hypothesis.
 
-**Why it fails**: Blood vessels have inherent directionality (tubular structures with orientation). The vessel's alignment relative to the imaging axes may carry diagnostic information that rotation-invariant features discard.
+**Why it fails**: PCA alignment deliberately encodes shape information into the coordinate axes: by design, the x-axis corresponds to the direction of maximum spatial extent for every object. Raw tensor coefficients are sensitive to this coordinate-axis bias — for example, w020_xx directly reflects how surface normals are distributed along the principal axis — so they benefit from the alignment. SO3 invariants are by construction insensitive to any coordinate system, and therefore discard exactly the axis-relative information that the PCA alignment was intended to capture. The result is that raw tensors outperform SO3 invariants here not because of arbitrary orientation differences between objects, but because the canonical x-axis carries meaningful shape information that SO3 invariants cannot use.
 
 ### Revised Understanding
 
 The core hypothesis requires qualification:
 
-> **Rotation invariance helps when shape differences are orientation-independent. When object orientation itself is diagnostically relevant, raw tensor components preserve this information.**
+> **When objects are PCA-aligned to a canonical frame, raw tensor coefficients are sensitive to the coordinate-axis bias introduced by the alignment and capture axis-relative shape information. SO3 invariants are insensitive to any coordinate system and cannot exploit this bias. If the axis-relative features are diagnostically relevant, raw tensor coefficients outperform SO3 invariants.**
 
 This suggests a **task-dependent feature selection strategy**:
-- Tumors, cells, organelles → prefer SO3 invariants
-- Vessels, fibers, elongated structures → preserve orientation information
+- Tumors, cells, organelles → prefer SO3 invariants (shape differences are intrinsic and not tied to the principal axis)
+- Vessels, fibers, elongated structures → preserve raw tensor coefficients (the PCA-aligned x-axis encodes useful shape information that coordinate-system-sensitive features can exploit)
 
 ---
 
