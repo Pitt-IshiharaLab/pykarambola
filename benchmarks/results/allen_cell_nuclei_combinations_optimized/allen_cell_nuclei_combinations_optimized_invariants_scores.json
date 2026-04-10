@@ -1,0 +1,90 @@
+{
+  "SO3 Degree 2 + SO2 z-scalars": {
+    "n_features": 49,
+    "feature_names": [
+      "dot_w010_w010",
+      "dot_w010_w110",
+      "dot_w010_w210",
+      "dot_w010_w310",
+      "dot_w110_w110",
+      "dot_w110_w210",
+      "dot_w110_w310",
+      "dot_w210_w210",
+      "dot_w210_w310",
+      "dot_w310_w310",
+      "frob_w020_w020",
+      "frob_w020_w102",
+      "frob_w020_w120",
+      "frob_w020_w202",
+      "frob_w020_w220",
+      "frob_w020_w320",
+      "frob_w102_w102",
+      "frob_w102_w120",
+      "frob_w102_w202",
+      "frob_w102_w220",
+      "frob_w102_w320",
+      "frob_w120_w120",
+      "frob_w120_w202",
+      "frob_w120_w220",
+      "frob_w120_w320",
+      "frob_w202_w202",
+      "frob_w202_w220",
+      "frob_w202_w320",
+      "frob_w220_w220",
+      "frob_w220_w320",
+      "frob_w320_w320",
+      "w000",
+      "w020",
+      "w100",
+      "w120",
+      "w200",
+      "w220",
+      "w300",
+      "w320",
+      "w010_z",
+      "w020_zz",
+      "w102_zz",
+      "w110_z",
+      "w120_zz",
+      "w202_zz",
+      "w210_z",
+      "w220_zz",
+      "w310_z",
+      "w320_zz"
+    ],
+    "balanced_accuracy": {
+      "mean": 0.7836770578192146,
+      "std": 0.007413700178951876
+    },
+    "geometric_mean": {
+      "mean": 0.77800961474259,
+      "std": 0.00838996427463679
+    },
+    "runtime_seconds": {
+      "optimization": 190.0,
+      "evaluation": 45.5
+    }
+  },
+  "SO3 Degree 2 + Eigenvalues": {
+    "n_features": 57,
+    "feature_names": "57 features",
+    "balanced_accuracy": {
+      "mean": 0.81744725850118,
+      "std": 0.002842899972227474
+    },
+    "geometric_mean": {
+      "mean": 0.8143470567413305,
+      "std": 0.0026333560153221514
+    },
+    "runtime_seconds": {
+      "optimization": 1220.4,
+      "evaluation": 505.7
+    }
+  },
+  "_meta": {
+    "total_runtime_seconds": 1966.1,
+    "n_iter": 20,
+    "seeds": 3,
+    "linear_only": true
+  }
+}

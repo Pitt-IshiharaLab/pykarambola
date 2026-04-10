@@ -118,6 +118,57 @@ def build_invariant_features(
     return X, feature_names
 
 
+def build_so3d2_so2d1_extra_features(df: pd.DataFrame) -> tuple[np.ndarray, list[str]]:
+    """SO3 Degree 2 + SO2 Degree 1 z-axis scalars not already in SO3 Degree 2.
+
+    The extra SO2 Degree 1 features are the v_z components of rank-1 tensors
+    ({name}_z) and the M_zz components of rank-2 tensors ({name}_zz), which
+    encode z-axis orientation information absent from SO(3) invariants.
+    """
+    results = []
+    so3_keys = None
+    so2_extra_keys = None
+
+    for _, row in df.iterrows():
+        tensors = reconstruct_tensors(row)
+        so3_inv = compute_invariants(tensors, max_degree=2, symmetry='SO3')
+        so2_d1 = compute_invariants(tensors, max_degree=1, symmetry='SO2')
+
+        if so3_keys is None:
+            so3_keys = sorted(so3_inv.keys())
+            so2_extra_keys = sorted(k for k in so2_d1 if k not in so3_inv)
+
+        results.append([so3_inv[k] for k in so3_keys] + [so2_d1[k] for k in so2_extra_keys])
+
+    feature_names = so3_keys + so2_extra_keys
+    return np.array(results), feature_names
+
+
+def build_so3d2_eigen_features(df: pd.DataFrame) -> tuple[np.ndarray, list[str]]:
+    """SO3 Degree 2 invariants + eigenvalues of rank-2 tensors from CSV.
+
+    Eigenvalues are rotation invariants and add explicit shape information
+    without the collinearity introduced by also including raw tensor components.
+    Beta (anisotropy index) columns are excluded as they are derived from
+    eigenvalues and would add redundancy.
+    """
+    eval_cols = sorted(c for c in df.columns if 'EVal' in c)
+    results = []
+    so3_keys = None
+
+    for _, row in df.iterrows():
+        tensors = reconstruct_tensors(row)
+        so3_inv = compute_invariants(tensors, max_degree=2, symmetry='SO3')
+
+        if so3_keys is None:
+            so3_keys = sorted(so3_inv.keys())
+
+        results.append([so3_inv[k] for k in so3_keys] + [row[c] for c in eval_cols])
+
+    feature_names = so3_keys + eval_cols
+    return np.array(results), feature_names
+
+
 def build_spharm_invariant_features(
     df: pd.DataFrame,
     spharm_df: pd.DataFrame,
@@ -395,6 +446,14 @@ def main():
     for deg in range(1, args.max_so3_degree + 1):
         feature_sets.append(
             (f'SO3 Degree {deg}', lambda df, d=deg: build_invariant_features(df, max_degree=d))
+        )
+
+    if args.max_so3_degree >= 2:
+        feature_sets.append(
+            ('SO3 Degree 2 + SO2 z-scalars', lambda df: build_so3d2_so2d1_extra_features(df))
+        )
+        feature_sets.append(
+            ('SO3 Degree 2 + Eigenvalues', lambda df: build_so3d2_eigen_features(df))
         )
 
     for deg in range(1, args.max_so2_degree + 1):
