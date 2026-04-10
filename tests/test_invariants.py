@@ -1716,3 +1716,137 @@ class TestSO2InvariantsMeshIntegration:
         tensors_with_eig = minkowski_tensors(verts, faces, compute_eigensystems=True)
         inv = compute_invariants(tensors_with_eig, symmetry='SO2')
         assert len(inv) > 754
+
+# =============================================================================
+# TestSO3InvariantsMeshIntegration
+# =============================================================================
+
+class TestSO3InvariantsMeshIntegration:
+    """SO(3) and O(3) invariants computed from mesh-derived Minkowski tensors.
+
+    These tests exercise the full pipeline:
+        mesh → minkowski_tensors() → compute_invariants(symmetry='SO3'/'O3')
+
+    The same compute_eigensystems=False requirement applies as for SO(2):
+    eigvals (shape (3,)) are treated as rank-1 vectors and eigvecs (shape (3,3))
+    as rank-2 matrices, inflating the invariant count if included.
+
+    Tolerance for rotation-invariance tests is 1e-5 (absolute).  The triple-trace
+    invariants Tr(Ti @ Tj @ Tk) accumulate ~2.7e-7 floating-point error for the
+    3×2×1 box under arbitrary rotations; 1e-5 provides a 40× safety margin.
+    """
+
+    @pytest.fixture
+    def box_tensors(self):
+        """14 standard Minkowski tensors for the 3×2×1 box."""
+        verts, faces = _box_mesh_so2(3.0, 2.0, 1.0)
+        return minkowski_tensors(verts, faces, compute_eigensystems=False)
+
+    # ---- basic pipeline ----
+
+    def test_pipeline_runs_so3(self, box_tensors):
+        """minkowski_tensors() output is accepted for symmetry='SO3'."""
+        inv = compute_invariants(box_tensors, symmetry='SO3')
+        assert len(inv) > 0
+
+    def test_pipeline_runs_o3(self, box_tensors):
+        """minkowski_tensors() output is accepted for symmetry='O3'."""
+        inv = compute_invariants(box_tensors, symmetry='O3')
+        assert len(inv) > 0
+
+    def test_degree1_keys_present(self, box_tensors):
+        """Spot-check that expected degree-1 keys appear in the output."""
+        inv = compute_invariants(box_tensors, symmetry='SO3', max_degree=1)
+        for name in ('w000', 'w100', 'w200', 'w300',
+                     'w020', 'w120', 'w220', 'w320'):
+            assert name in inv, f"Missing degree-1 key '{name}'"
+
+    # ---- invariant counts ----
+
+    def test_invariant_count_so3(self, box_tensors):
+        """14-tensor mesh output produces exactly 219 SO(3) invariants."""
+        inv = compute_invariants(box_tensors, symmetry='SO3')
+        assert len(inv) == 219
+
+    def test_invariant_count_o3(self, box_tensors):
+        """14-tensor mesh output produces exactly 155 O(3) invariants."""
+        inv = compute_invariants(box_tensors, symmetry='O3')
+        assert len(inv) == 155
+
+    def test_so3_has_more_invariants_than_o3(self, box_tensors):
+        """SO(3) includes pseudo-scalars (det_, comm_) absent from O(3)."""
+        inv_so3 = compute_invariants(box_tensors, symmetry='SO3')
+        inv_o3  = compute_invariants(box_tensors, symmetry='O3')
+        assert len(inv_so3) > len(inv_o3)
+        pseudo_keys = [k for k in inv_so3 if k not in inv_o3]
+        assert all(k.startswith(('det_', 'comm_')) for k in pseudo_keys)
+
+    # ---- deduplication with mesh data ----
+
+    def test_dedup_w102_w100(self, box_tensors):
+        """Tr(w102) = w100 for any mesh, so Tr(w102)/3 is proportional to w100
+        and is removed by deduplicate_scalars=True."""
+        inv = compute_invariants(box_tensors, symmetry='SO3', max_degree=1)
+        assert 'w100' in inv
+        assert 'w102' not in inv
+
+    def test_dedup_w202_w200(self, box_tensors):
+        """Tr(w202) = w200 for any mesh (curvature analogue of the area identity)."""
+        inv = compute_invariants(box_tensors, symmetry='SO3', max_degree=1)
+        assert 'w200' in inv
+        assert 'w202' not in inv
+
+    def test_dedup_disabled_restores_both_scalars(self, box_tensors):
+        """With deduplicate_scalars=False, w102 and w202 trace keys are kept."""
+        inv = compute_invariants(box_tensors, symmetry='SO3', max_degree=1,
+                                 deduplicate_scalars=False)
+        assert 'w102' in inv
+        assert 'w202' in inv
+
+    # ---- rotation invariance on the actual mesh ----
+
+    @pytest.mark.parametrize("seed", [0, 1, 7, 42])
+    def test_rotation_invariance_so3(self, seed):
+        """Arbitrary rotation of the mesh leaves SO(3) invariants unchanged.
+
+        Tolerance is 1e-5 (absolute): triple-trace invariants accumulate up to
+        ~2.7e-7 floating-point error for this mesh under arbitrary rotations.
+        """
+        verts, faces = _box_mesh_so2(3.0, 2.0, 1.0)
+        R = Rotation.random(random_state=np.random.default_rng(seed)).as_matrix()
+
+        tensors     = minkowski_tensors(verts,       faces, compute_eigensystems=False)
+        tensors_rot = minkowski_tensors(verts @ R.T, faces, compute_eigensystems=False)
+
+        inv     = compute_invariants(tensors,     symmetry='SO3')
+        inv_rot = compute_invariants(tensors_rot, symmetry='SO3')
+
+        assert set(inv.keys()) == set(inv_rot.keys())
+        for k in inv:
+            assert abs(inv[k] - inv_rot[k]) < 1e-5, \
+                f"rotation broke '{k}': {inv[k]:.6g} vs {inv_rot[k]:.6g}"
+
+    @pytest.mark.parametrize("seed", [0, 7])
+    def test_rotation_invariance_o3(self, seed):
+        """Arbitrary rotation of the mesh leaves O(3) invariants unchanged."""
+        verts, faces = _box_mesh_so2(3.0, 2.0, 1.0)
+        R = Rotation.random(random_state=np.random.default_rng(seed)).as_matrix()
+
+        tensors     = minkowski_tensors(verts,       faces, compute_eigensystems=False)
+        tensors_rot = minkowski_tensors(verts @ R.T, faces, compute_eigensystems=False)
+
+        inv     = compute_invariants(tensors,     symmetry='O3')
+        inv_rot = compute_invariants(tensors_rot, symmetry='O3')
+
+        for k in inv:
+            assert abs(inv[k] - inv_rot[k]) < 1e-5, \
+                f"rotation broke '{k}': {inv[k]:.6g} vs {inv_rot[k]:.6g}"
+
+    # ---- eigensystem-key pitfall ----
+
+    def test_eigensystem_keys_inflate_count(self):
+        """Passing minkowski_tensors() output WITH eigensystems inflates count."""
+        verts, faces = _box_mesh_so2(3.0, 2.0, 1.0)
+        tensors_with_eig = minkowski_tensors(verts, faces, compute_eigensystems=True)
+        inv = compute_invariants(tensors_with_eig, symmetry='SO3')
+        assert len(inv) > 219
