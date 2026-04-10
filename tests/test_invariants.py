@@ -15,6 +15,7 @@ import numpy as np
 import pytest
 from scipy.spatial.transform import Rotation
 
+from pykarambola.api import minkowski_tensors
 from pykarambola.invariants import (
     _infer_rank,
     _trace_rank2,
@@ -27,6 +28,11 @@ from pykarambola.invariants import (
     _triple_traces,
     _triple_vector_dets,
     _commutator_pseudoscalars,
+    _decompose_so2,
+    _so2_degree1_scalars,
+    _so2_collect_doublets,
+    _so2_doublet_inner_products,
+    _so2_triple_products,
     compute_invariants,
 )
 
@@ -1254,3 +1260,593 @@ class TestClebschGordanConsistency:
         expected_keys = {'s', 'dot_v_v'}
         assert set(result.keys()) == expected_keys, \
             f"Unexpected invariants: {set(result.keys()) - expected_keys}"
+
+# =============================================================================
+# TestSO2Invariants
+# =============================================================================
+
+class TestSO2Invariants:
+    """Tests for SO(2) (z-rotation) invariant computation."""
+
+    # ---- fixtures ----
+
+    @pytest.fixture
+    def simple_tensors(self):
+        return {
+            'w010': np.array([1.0, 2.0, 3.0]),
+            'w020': np.diag([1.0, 2.0, 3.0]),
+        }
+
+    # ---- _decompose_so2 ----
+
+    def test_decompose_so2_rank0(self):
+        dec = _decompose_so2({'s': 3.7})
+        assert ('s', 'sc') in dec
+        assert dec[('s', 'sc')] == pytest.approx(3.7)
+
+    def test_decompose_so2_rank1(self):
+        v = np.array([1.0, 2.0, 3.0])
+        dec = _decompose_so2({'v': v})
+        assert dec[('v', 'z')] == pytest.approx(3.0)
+        np.testing.assert_allclose(dec[('v', 'xy')], [1.0, 2.0])
+
+    def test_decompose_so2_rank2(self):
+        M = np.diag([1.0, 2.0, 3.0])
+        dec = _decompose_so2({'M': M})
+        tr_over3 = 2.0  # (1+2+3)/3
+        assert dec[('M', 'tr')] == pytest.approx(tr_over3)
+        assert dec[('M', 'tzz')] == pytest.approx(3.0 - tr_over3)  # M_zz - Tr/3
+        np.testing.assert_allclose(dec[('M', 'xz')], [0.0, 0.0])
+        np.testing.assert_allclose(dec[('M', 'm2')], [1.0 - 2.0, 0.0])  # [Mxx-Myy, 2Mxy]
+
+    def test_decompose_so2_rank2_symmetrizes(self):
+        """Non-symmetric input should be symmetrized."""
+        M = np.array([[1., 3., 0.], [1., 2., 0.], [0., 0., 3.]])  # asymmetric
+        dec = _decompose_so2({'M': M})
+        # M_sym = [[1,2,0],[2,2,0],[0,0,3]]; M_xy=2, so m2[1] = 2*2 = 4
+        np.testing.assert_allclose(dec[('M', 'm2')][1], 4.0)
+
+    # ---- degree-1 scalars ----
+
+    def test_so2_degree1_rank0(self):
+        dec = _decompose_so2({'s': 7.0})
+        scalars = _so2_degree1_scalars(dec)
+        assert scalars['s'] == pytest.approx(7.0)
+
+    def test_so2_degree1_rank1_z(self):
+        v = np.array([1.0, 2.0, 5.0])
+        dec = _decompose_so2({'v': v})
+        scalars = _so2_degree1_scalars(dec)
+        assert 'v_z' in scalars
+        assert scalars['v_z'] == pytest.approx(5.0)
+        assert 'v' not in scalars  # no rank-0 component from vectors
+
+    def test_so2_degree1_rank2_trace_and_zz(self):
+        M = np.diag([1.0, 2.0, 3.0])
+        dec = _decompose_so2({'M': M})
+        scalars = _so2_degree1_scalars(dec)
+        assert 'M' in scalars
+        assert scalars['M'] == pytest.approx(2.0)  # Tr/3 = 2
+        assert 'M_zz' in scalars
+        assert scalars['M_zz'] == pytest.approx(3.0)  # M[2,2]
+
+    def test_so2_degree1_dedup_trace(self):
+        """Tr(w102)/3 should be removed when w100 is present."""
+        dec = _decompose_so2({'w100': 0.5, 'w102': np.diag([0.5, 0.5, 0.5])})
+        scalars = _so2_degree1_scalars(dec, deduplicate=True)
+        assert 'w100' in scalars
+        assert 'w102' not in scalars   # deduped
+        assert 'w102_zz' in scalars    # _zz always kept
+
+    def test_so2_degree1_dedup_disabled(self):
+        """With deduplicate=False both trace and base scalar appear."""
+        dec = _decompose_so2({'w100': 0.5, 'w102': np.diag([0.5, 0.5, 0.5])})
+        scalars = _so2_degree1_scalars(dec, deduplicate=False)
+        assert 'w100' in scalars
+        assert 'w102' in scalars
+        assert 'w102_zz' in scalars
+
+    def test_so2_degree1_zz_never_deduped(self):
+        """_zz key should always be present even when trace is deduped."""
+        dec = _decompose_so2({'w100': 0.5, 'w102': np.diag([1.5, 1.5, 1.5])})
+        scalars_with = _so2_degree1_scalars(dec, deduplicate=True)
+        scalars_without = _so2_degree1_scalars(dec, deduplicate=False)
+        assert 'w102_zz' in scalars_with
+        assert 'w102_zz' in scalars_without
+
+    # ---- degree-2 doublet inner products ----
+
+    def test_so2_m1_self_inner_product(self):
+        v = np.array([3.0, 4.0, 0.0])
+        dec = _decompose_so2({'v': v})
+        inv = _so2_doublet_inner_products(dec)
+        assert 'd1_v_xy_v_xy' in inv
+        assert inv['d1_v_xy_v_xy'] == pytest.approx(25.0)  # 3²+4²
+
+    def test_so2_m1_cross_type_pair(self):
+        """Cross-type |m|=1 pair: rank-1 _xy and rank-2 _xz."""
+        v = np.array([1.0, 0.0, 0.0])
+        M = np.array([[0., 0., 1.], [0., 0., 0.], [1., 0., 0.]])  # M_xz=1
+        dec = _decompose_so2({'v': v, 'M': M})
+        inv = _so2_doublet_inner_products(dec)
+        assert 'd1_M_xz_v_xy' in inv or 'd1_v_xy_M_xz' in inv
+        # The actual key depends on sort order
+        key = 'd1_M_xz_v_xy' if 'd1_M_xz_v_xy' in inv else 'd1_v_xy_M_xz'
+        assert inv[key] == pytest.approx(1.0)  # [1,0]·[1,0] = 1
+
+    def test_so2_m2_self_inner_product(self):
+        M = np.diag([2.0, -1.0, -1.0])
+        dec = _decompose_so2({'M': M})
+        inv = _so2_doublet_inner_products(dec)
+        # m2 = [2-(-1), 2*0] = [3, 0]; |m2|² = 9
+        assert 'd2_M_m2_M_m2' in inv
+        assert inv['d2_M_m2_M_m2'] == pytest.approx(9.0)
+
+    def test_so2_degree2_count(self):
+        """With 1 rank-1 vector and 1 rank-2 matrix:
+        |m|=1 doublets: v_xy + M_xz = 2 → 2*3/2 = 3 d1 pairs
+        |m|=2 doublets: M_m2 = 1 → 1 d2 pair
+        Total: 4
+        """
+        dec = _decompose_so2({'v': np.array([1., 2., 3.]), 'M': np.eye(3)})
+        inv = _so2_doublet_inner_products(dec)
+        d1_keys = [k for k in inv if k.startswith('d1_')]
+        d2_keys = [k for k in inv if k.startswith('d2_')]
+        assert len(d1_keys) == 3
+        assert len(d2_keys) == 1
+
+    # ---- degree-3 triple products ----
+
+    def test_so2_triple_product_known_value_re(self):
+        """Known value check for tp_re: v=[1,0,0], M=diag([2,-1,-1]).
+        v_xy=[1,0], m2=[3,0]
+        re_ab = 1*1 - 0*0 = 1, im_ab = 1*0 + 0*1 = 0
+        tp_re = Re[conj(m2) * (v_xy*v_xy)] = 1*3 + 0*0 = 3
+        tp_im = Im[conj(m2) * (v_xy*v_xy)] = 0*3 - 1*0 = 0
+        """
+        v = np.array([1.0, 0.0, 0.0])
+        M = np.diag([2.0, -1.0, -1.0])
+        inv = compute_invariants({'w010': v, 'w020': M}, symmetry='SO2', max_degree=3)
+        assert inv['tp_re_w010_xy_w010_xy_w020_m2'] == pytest.approx(3.0)
+        assert inv['tp_im_w010_xy_w010_xy_w020_m2'] == pytest.approx(0.0)
+
+    def test_so2_triple_product_known_value_im(self):
+        """Known value check for tp_im using inputs that make Im non-zero.
+        v=[1,1,0], M with m2=[0,2] (M_xx=M_yy, M_xy=1).
+        v_xy=[1,1], re_ab=1*1-1*1=0, im_ab=1*1+1*1=2
+        tp_re = Re[conj(m2)*(v_xy*v_xy)] = 0*0 + 2*2 = 4
+        tp_im = Im[conj(m2)*(v_xy*v_xy)] = 2*0 - 0*2 = 0... try different m2.
+
+        Use v=[1,1,0], M s.t. m2=[1,0]:
+        re_ab=0, im_ab=2
+        tp_re = 0*1 + 2*0 = 0
+        tp_im = 2*1 - 0*0 = 2
+        """
+        v = np.array([1.0, 1.0, 0.0])
+        # M_xx - M_yy = 1, M_xy = 0  → m2 = [1, 0]
+        M = np.array([[0.5, 0., 0.], [0., -0.5, 0.], [0., 0., 0.]])
+        inv = compute_invariants({'w010': v, 'w020': M}, symmetry='SO2', max_degree=3)
+        assert inv['tp_re_w010_xy_w010_xy_w020_m2'] == pytest.approx(0.0)
+        assert inv['tp_im_w010_xy_w010_xy_w020_m2'] == pytest.approx(2.0)
+
+    def test_so2_triple_product_re_im_both_present(self):
+        """Both Re and Im keys should be generated for each triple."""
+        v = np.array([1.0, 1.0, 0.0])
+        M = np.array([[0., 1., 0.], [1., 0., 0.], [0., 0., 0.]])  # off-diagonal
+        dec = _decompose_so2({'v': v, 'M': M})
+        tp = _so2_triple_products(dec)
+        re_keys = [k for k in tp if k.startswith('tp_re_')]
+        im_keys = [k for k in tp if k.startswith('tp_im_')]
+        assert len(re_keys) == len(im_keys)
+        assert len(re_keys) > 0
+
+    def test_so2_triple_product_count(self):
+        """With 1 rank-1 vector + 1 rank-2 matrix:
+        |m|=1 doublets: 2 (v_xy, M_xz) → 2*3/2=3 pairs
+        |m|=2 doublets: 1 (M_m2)
+        → 3 * 1 * 2 (Re+Im) = 6 triple invariants
+        """
+        dec = _decompose_so2({'v': np.array([1., 2., 3.]), 'M': np.eye(3)})
+        tp = _so2_triple_products(dec)
+        assert len(tp) == 6
+
+    # ---- invariance under z-rotation ----
+
+    @pytest.mark.parametrize("theta", [15, 45, 90, 137, 270])
+    def test_so2_invariance_under_z_rotation(self, theta, simple_tensors):
+        """All SO(2) invariants must be unchanged by rotation about z."""
+        inv = compute_invariants(simple_tensors, symmetry='SO2')
+        R = Rotation.from_euler('z', theta, degrees=True).as_matrix()
+        rotated = {
+            k: (R @ v if np.asarray(v).ndim == 1 else R @ np.asarray(v) @ R.T)
+            for k, v in simple_tensors.items()
+        }
+        inv_rot = compute_invariants(rotated, symmetry='SO2')
+        for k in inv:
+            assert abs(inv[k] - inv_rot[k]) < 1e-9, \
+                f"z-rotation by {theta}° broke invariant '{k}': {inv[k]} vs {inv_rot[k]}"
+
+    @pytest.mark.parametrize("seed", [0, 1, 7, 42])
+    def test_so2_invariance_random_tensors(self, seed):
+        """Random tensors: SO(2) invariants stable under z-rotation."""
+        rng = np.random.default_rng(seed)
+        M = rng.standard_normal((3, 3))
+        M = (M + M.T) / 2
+        tensors = {'v': rng.standard_normal(3), 'M': M}
+        inv = compute_invariants(tensors, symmetry='SO2')
+        theta = rng.uniform(0, 360)
+        R = Rotation.from_euler('z', theta, degrees=True).as_matrix()
+        rotated = {'v': R @ tensors['v'], 'M': R @ M @ R.T}
+        inv_rot = compute_invariants(rotated, symmetry='SO2')
+        for k in inv:
+            assert abs(inv[k] - inv_rot[k]) < 1e-8, \
+                f"seed={seed}, theta={theta:.1f}: '{k}' not invariant"
+
+    # ---- NOT invariant under arbitrary rotation ----
+
+    def test_so2_not_invariant_under_x_rotation(self, simple_tensors):
+        """SO(2) invariants should NOT be invariant under rotation about x."""
+        inv = compute_invariants(simple_tensors, symmetry='SO2')
+        R = Rotation.from_euler('x', 45, degrees=True).as_matrix()
+        rotated = {
+            k: (R @ v if np.asarray(v).ndim == 1 else R @ np.asarray(v) @ R.T)
+            for k, v in simple_tensors.items()
+        }
+        inv_rot = compute_invariants(rotated, symmetry='SO2')
+        # w010_z should change since the vector is not aligned with z
+        assert abs(inv['w010_z'] - inv_rot['w010_z']) > 1e-6, \
+            "w010_z should change under x-rotation"
+
+    # ---- invariant count for 14 standard tensors ----
+
+    def test_so2_invariant_count_14_tensors(self):
+        """Full 14-tensor set: expect 18 + 76 + 660 = 754 invariants."""
+        rng = np.random.default_rng(0)
+
+        def rand_sym(n=3):
+            M = rng.standard_normal((n, n))
+            return (M + M.T) / 2
+
+        tensors = {
+            # 4 rank-0 scalars
+            'w000': 1.0, 'w100': 0.5, 'w200': 0.3, 'w300': 1.0,
+            # 4 rank-1 vectors
+            'w010': rng.standard_normal(3),
+            'w110': rng.standard_normal(3),
+            'w210': rng.standard_normal(3),
+            'w310': rng.standard_normal(3),
+            # 6 rank-2 matrices
+            'w020': rand_sym(),
+            'w120': rand_sym(),
+            'w220': rand_sym(),
+            'w320': rand_sym(),
+            'w102': rand_sym(),
+            'w202': rand_sym(),
+        }
+
+        inv = compute_invariants(tensors, symmetry='SO2', max_degree=3)
+
+        # Degree-1: 4 scalars + 4 v_z + 4 trace (2 deduped: w102, w202) + 6 _zz = 18
+        deg1 = {k: v for k, v in inv.items() if not k.startswith(('d1_', 'd2_', 'tp_'))}
+        assert len(deg1) == 18, f"Expected 18 degree-1, got {len(deg1)}: {sorted(deg1)}"
+
+        # Degree-2: 55 d1 + 21 d2 = 76
+        deg2 = {k: v for k, v in inv.items() if k.startswith(('d1_', 'd2_'))}
+        assert len(deg2) == 76, f"Expected 76 degree-2, got {len(deg2)}"
+
+        # Degree-3: 660 triple products (Re + Im)
+        deg3 = {k: v for k, v in inv.items() if k.startswith('tp_')}
+        assert len(deg3) == 660, f"Expected 660 degree-3, got {len(deg3)}"
+
+        assert len(inv) == 754, f"Expected 754 total, got {len(inv)}"
+
+    # ---- API edge cases ----
+
+    def test_so2_empty_input(self):
+        assert compute_invariants({}, symmetry='SO2') == {}
+
+    def test_so2_invalid_symmetry_raises(self):
+        """Invalid symmetry strings should raise ValueError, not silently fall through."""
+        tensors = {'v': np.array([1., 0., 0.])}
+        with pytest.raises(ValueError, match="Invalid symmetry"):
+            compute_invariants(tensors, symmetry='so2')
+        with pytest.raises(ValueError, match="Invalid symmetry"):
+            compute_invariants(tensors, symmetry='SO2 ')
+        with pytest.raises(ValueError, match="Invalid symmetry"):
+            compute_invariants(tensors, symmetry='xyz')
+
+    def test_so2_degree1_key_collision_raises(self):
+        """Degree-1 key collision between rank-0 name and rank-1 derived key raises."""
+        tensors = {'v_z': 99.0, 'v': np.array([1., 2., 3.])}
+        with pytest.raises(ValueError, match="key collision"):
+            compute_invariants(tensors, symmetry='SO2', max_degree=1)
+
+    def test_so2_scalar_only(self):
+        inv = compute_invariants({'s': 3.0}, symmetry='SO2')
+        assert inv == {'s': pytest.approx(3.0)}
+
+    def test_so2_max_degree_1(self, simple_tensors):
+        inv = compute_invariants(simple_tensors, symmetry='SO2', max_degree=1)
+        assert all(not k.startswith(('d1_', 'd2_', 'tp_')) for k in inv)
+
+    def test_so2_max_degree_2(self, simple_tensors):
+        inv = compute_invariants(simple_tensors, symmetry='SO2', max_degree=2)
+        assert not any(k.startswith('tp_') for k in inv)
+        assert any(k.startswith(('d1_', 'd2_')) for k in inv)
+
+# =============================================================================
+# TestSO2InvariantsMeshIntegration
+# =============================================================================
+
+def _box_mesh_so2(a, b, c):
+    """Axis-aligned box centered at the origin, 12 triangles, outward normals.
+
+    Returns (verts, faces) numpy arrays. Duplicated locally to keep this module
+    self-contained (avoids importing from another test file).
+    """
+    ha, hb, hc = a / 2.0, b / 2.0, c / 2.0
+    verts = np.array([
+        [-ha, -hb, -hc], [ ha, -hb, -hc], [ ha,  hb, -hc], [-ha,  hb, -hc],
+        [-ha, -hb,  hc], [ ha, -hb,  hc], [ ha,  hb,  hc], [-ha,  hb,  hc],
+    ], dtype=np.float64)
+    faces = np.array([
+        [0, 3, 2], [0, 2, 1],   # -z
+        [4, 5, 6], [4, 6, 7],   # +z
+        [0, 1, 5], [0, 5, 4],   # -y
+        [2, 3, 7], [2, 7, 6],   # +y
+        [0, 4, 7], [0, 7, 3],   # -x
+        [1, 2, 6], [1, 6, 5],   # +x
+    ], dtype=np.int64)
+    return verts, faces
+
+
+class TestSO2InvariantsMeshIntegration:
+    """SO(2) invariants computed from mesh-derived Minkowski tensors.
+
+    These tests exercise the full pipeline:
+        mesh → minkowski_tensors() → compute_invariants(symmetry='SO2')
+
+    All tests use an asymmetric box (3×2×1) so the invariants are non-trivial.
+    compute_eigensystems=False is required; passing eigensystem keys inflates
+    the invariant count (eigvals shape (3,) → treated as rank-1 vectors,
+    eigvecs shape (3,3) → treated as rank-2 matrices).
+    """
+
+    @pytest.fixture
+    def box_tensors(self):
+        """14 standard Minkowski tensors for the 3×2×1 box."""
+        verts, faces = _box_mesh_so2(3.0, 2.0, 1.0)
+        return minkowski_tensors(verts, faces, compute_eigensystems=False)
+
+    # ---- basic pipeline ----
+
+    def test_pipeline_runs(self, box_tensors):
+        """minkowski_tensors() output is accepted without error."""
+        inv = compute_invariants(box_tensors, symmetry='SO2')
+        assert len(inv) > 0
+
+    def test_degree1_keys_present(self, box_tensors):
+        """Spot-check that expected degree-1 keys appear in the output."""
+        inv = compute_invariants(box_tensors, symmetry='SO2', max_degree=1)
+        # rank-0 scalars
+        for name in ('w000', 'w100', 'w200', 'w300'):
+            assert name in inv, f"Missing rank-0 key '{name}'"
+        # rank-1 v_z
+        for name in ('w010_z', 'w110_z', 'w210_z', 'w310_z'):
+            assert name in inv, f"Missing v_z key '{name}'"
+        # rank-2 _zz (always kept, even for deduped tensors)
+        for name in ('w020_zz', 'w102_zz', 'w202_zz'):
+            assert name in inv, f"Missing _zz key '{name}'"
+
+    def test_invariant_count_754(self, box_tensors):
+        """Full 14-tensor mesh output produces exactly 754 SO(2) invariants."""
+        inv = compute_invariants(box_tensors, symmetry='SO2')
+        assert len(inv) == 754
+
+    # ---- deduplication with mesh data ----
+
+    def test_dedup_w102_w100(self, box_tensors):
+        """Tr(w102)/3 is proportional to w100 (both are area integrals), so the
+        w102 trace key is deduped when w100 is present.  The _zz key is kept."""
+        inv = compute_invariants(box_tensors, symmetry='SO2', max_degree=1)
+        assert 'w100' in inv      # base scalar kept
+        assert 'w102' not in inv  # trace of w102 is proportional to w100 → deduped
+        assert 'w102_zz' in inv   # _zz = M_zz always kept
+
+    def test_dedup_w202_w200(self, box_tensors):
+        """Tr(w202)/3 is proportional to w200 (both are curvature integrals)."""
+        inv = compute_invariants(box_tensors, symmetry='SO2', max_degree=1)
+        assert 'w200' in inv
+        assert 'w202' not in inv
+        assert 'w202_zz' in inv
+
+    def test_dedup_disabled_restores_both_scalars(self, box_tensors):
+        """With deduplicate_scalars=False, w102 and w202 trace keys are kept."""
+        inv = compute_invariants(box_tensors, symmetry='SO2', max_degree=1,
+                                 deduplicate_scalars=False)
+        assert 'w102' in inv
+        assert 'w202' in inv
+
+    # ---- z-rotation invariance on the actual mesh ----
+
+    @pytest.mark.parametrize("theta", [30, 90, 180])
+    def test_z_rotation_invariance(self, theta):
+        """Rotating the mesh about z produces identical SO(2) invariants."""
+        verts, faces = _box_mesh_so2(3.0, 2.0, 1.0)
+        R = Rotation.from_euler('z', theta, degrees=True).as_matrix()
+
+        tensors     = minkowski_tensors(verts,        faces, compute_eigensystems=False)
+        tensors_rot = minkowski_tensors(verts @ R.T,  faces, compute_eigensystems=False)
+
+        inv     = compute_invariants(tensors,     symmetry='SO2')
+        inv_rot = compute_invariants(tensors_rot, symmetry='SO2')
+
+        assert set(inv.keys()) == set(inv_rot.keys())
+        for k in inv:
+            assert abs(inv[k] - inv_rot[k]) < 1e-10, \
+                f"z-rotation by {theta}° broke '{k}': {inv[k]:.6g} vs {inv_rot[k]:.6g}"
+
+    # ---- non-invariance under off-axis rotation ----
+
+    def test_not_invariant_under_x_rotation(self):
+        """Rotating the mesh about x changes SO(2) invariants."""
+        verts, faces = _box_mesh_so2(3.0, 2.0, 1.0)
+        R = Rotation.from_euler('x', 45, degrees=True).as_matrix()
+
+        tensors     = minkowski_tensors(verts,       faces, compute_eigensystems=False)
+        tensors_rot = minkowski_tensors(verts @ R.T, faces, compute_eigensystems=False)
+
+        inv     = compute_invariants(tensors,     symmetry='SO2')
+        inv_rot = compute_invariants(tensors_rot, symmetry='SO2')
+
+        # The box is asymmetric in z, so matrix _zz components change under x-rotation
+        assert abs(inv['w020_zz'] - inv_rot['w020_zz']) > 1e-6, \
+            "w020_zz should change under x-rotation of an asymmetric box"
+
+    # ---- eigensystem-key pitfall ----
+
+    def test_eigensystem_keys_inflate_count(self):
+        """Passing minkowski_tensors() output WITH eigensystems produces more than
+        754 invariants because eigvals (shape (3,)) are treated as rank-1 vectors
+        and eigvecs (shape (3,3)) as rank-2 matrices.
+
+        This documents the required usage: always pass compute_eigensystems=False.
+        """
+        verts, faces = _box_mesh_so2(3.0, 2.0, 1.0)
+        tensors_with_eig = minkowski_tensors(verts, faces, compute_eigensystems=True)
+        inv = compute_invariants(tensors_with_eig, symmetry='SO2')
+        assert len(inv) > 754
+
+# =============================================================================
+# TestSO3InvariantsMeshIntegration
+# =============================================================================
+
+class TestSO3InvariantsMeshIntegration:
+    """SO(3) and O(3) invariants computed from mesh-derived Minkowski tensors.
+
+    These tests exercise the full pipeline:
+        mesh → minkowski_tensors() → compute_invariants(symmetry='SO3'/'O3')
+
+    The same compute_eigensystems=False requirement applies as for SO(2):
+    eigvals (shape (3,)) are treated as rank-1 vectors and eigvecs (shape (3,3))
+    as rank-2 matrices, inflating the invariant count if included.
+
+    Tolerance for rotation-invariance tests is 1e-5 (absolute).  The triple-trace
+    invariants Tr(Ti @ Tj @ Tk) accumulate ~2.7e-7 floating-point error for the
+    3×2×1 box under arbitrary rotations; 1e-5 provides a 40× safety margin.
+    """
+
+    @pytest.fixture
+    def box_tensors(self):
+        """14 standard Minkowski tensors for the 3×2×1 box."""
+        verts, faces = _box_mesh_so2(3.0, 2.0, 1.0)
+        return minkowski_tensors(verts, faces, compute_eigensystems=False)
+
+    # ---- basic pipeline ----
+
+    def test_pipeline_runs_so3(self, box_tensors):
+        """minkowski_tensors() output is accepted for symmetry='SO3'."""
+        inv = compute_invariants(box_tensors, symmetry='SO3')
+        assert len(inv) > 0
+
+    def test_pipeline_runs_o3(self, box_tensors):
+        """minkowski_tensors() output is accepted for symmetry='O3'."""
+        inv = compute_invariants(box_tensors, symmetry='O3')
+        assert len(inv) > 0
+
+    def test_degree1_keys_present(self, box_tensors):
+        """Spot-check that expected degree-1 keys appear in the output."""
+        inv = compute_invariants(box_tensors, symmetry='SO3', max_degree=1)
+        for name in ('w000', 'w100', 'w200', 'w300',
+                     'w020', 'w120', 'w220', 'w320'):
+            assert name in inv, f"Missing degree-1 key '{name}'"
+
+    # ---- invariant counts ----
+
+    def test_invariant_count_so3(self, box_tensors):
+        """14-tensor mesh output produces exactly 219 SO(3) invariants."""
+        inv = compute_invariants(box_tensors, symmetry='SO3')
+        assert len(inv) == 219
+
+    def test_invariant_count_o3(self, box_tensors):
+        """14-tensor mesh output produces exactly 155 O(3) invariants."""
+        inv = compute_invariants(box_tensors, symmetry='O3')
+        assert len(inv) == 155
+
+    def test_so3_has_more_invariants_than_o3(self, box_tensors):
+        """SO(3) includes pseudo-scalars (det_, comm_) absent from O(3)."""
+        inv_so3 = compute_invariants(box_tensors, symmetry='SO3')
+        inv_o3  = compute_invariants(box_tensors, symmetry='O3')
+        assert len(inv_so3) > len(inv_o3)
+        pseudo_keys = [k for k in inv_so3 if k not in inv_o3]
+        assert all(k.startswith(('det_', 'comm_')) for k in pseudo_keys)
+
+    # ---- deduplication with mesh data ----
+
+    def test_dedup_w102_w100(self, box_tensors):
+        """Tr(w102) = w100 for any mesh, so Tr(w102)/3 is proportional to w100
+        and is removed by deduplicate_scalars=True."""
+        inv = compute_invariants(box_tensors, symmetry='SO3', max_degree=1)
+        assert 'w100' in inv
+        assert 'w102' not in inv
+
+    def test_dedup_w202_w200(self, box_tensors):
+        """Tr(w202) = w200 for any mesh (curvature analogue of the area identity)."""
+        inv = compute_invariants(box_tensors, symmetry='SO3', max_degree=1)
+        assert 'w200' in inv
+        assert 'w202' not in inv
+
+    def test_dedup_disabled_restores_both_scalars(self, box_tensors):
+        """With deduplicate_scalars=False, w102 and w202 trace keys are kept."""
+        inv = compute_invariants(box_tensors, symmetry='SO3', max_degree=1,
+                                 deduplicate_scalars=False)
+        assert 'w102' in inv
+        assert 'w202' in inv
+
+    # ---- rotation invariance on the actual mesh ----
+
+    @pytest.mark.parametrize("seed", [0, 1, 7, 42])
+    def test_rotation_invariance_so3(self, seed):
+        """Arbitrary rotation of the mesh leaves SO(3) invariants unchanged.
+
+        Tolerance is 1e-5 (absolute): triple-trace invariants accumulate up to
+        ~2.7e-7 floating-point error for this mesh under arbitrary rotations.
+        """
+        verts, faces = _box_mesh_so2(3.0, 2.0, 1.0)
+        R = Rotation.random(random_state=np.random.default_rng(seed)).as_matrix()
+
+        tensors     = minkowski_tensors(verts,       faces, compute_eigensystems=False)
+        tensors_rot = minkowski_tensors(verts @ R.T, faces, compute_eigensystems=False)
+
+        inv     = compute_invariants(tensors,     symmetry='SO3')
+        inv_rot = compute_invariants(tensors_rot, symmetry='SO3')
+
+        assert set(inv.keys()) == set(inv_rot.keys())
+        for k in inv:
+            assert abs(inv[k] - inv_rot[k]) < 1e-5, \
+                f"rotation broke '{k}': {inv[k]:.6g} vs {inv_rot[k]:.6g}"
+
+    @pytest.mark.parametrize("seed", [0, 7])
+    def test_rotation_invariance_o3(self, seed):
+        """Arbitrary rotation of the mesh leaves O(3) invariants unchanged."""
+        verts, faces = _box_mesh_so2(3.0, 2.0, 1.0)
+        R = Rotation.random(random_state=np.random.default_rng(seed)).as_matrix()
+
+        tensors     = minkowski_tensors(verts,       faces, compute_eigensystems=False)
+        tensors_rot = minkowski_tensors(verts @ R.T, faces, compute_eigensystems=False)
+
+        inv     = compute_invariants(tensors,     symmetry='O3')
+        inv_rot = compute_invariants(tensors_rot, symmetry='O3')
+
+        for k in inv:
+            assert abs(inv[k] - inv_rot[k]) < 1e-5, \
+                f"rotation broke '{k}': {inv[k]:.6g} vs {inv_rot[k]:.6g}"
+
+    # ---- eigensystem-key pitfall ----
+
+    def test_eigensystem_keys_inflate_count(self):
+        """Passing minkowski_tensors() output WITH eigensystems inflates count."""
+        verts, faces = _box_mesh_so2(3.0, 2.0, 1.0)
+        tensors_with_eig = minkowski_tensors(verts, faces, compute_eigensystems=True)
+        inv = compute_invariants(tensors_with_eig, symmetry='SO3')
+        assert len(inv) > 219
