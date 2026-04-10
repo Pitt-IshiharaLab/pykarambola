@@ -169,6 +169,34 @@ def build_so3d2_eigen_features(df: pd.DataFrame) -> tuple[np.ndarray, list[str]]
     return np.array(results), feature_names
 
 
+def build_invariants_eigen_features(
+    df: pd.DataFrame,
+    symmetry: str,
+    degree: int,
+) -> tuple[np.ndarray, list[str]]:
+    """Polynomial invariants (symmetry, degree) + eigenvalues of rank-2 tensors.
+
+    Eigenvalues add det(W) per tensor — I₃ = λ₁λ₂λ₃, a degree-3 quantity
+    algebraically independent of all degree-≤2 polynomial invariants.
+    Beta (anisotropy index) columns are excluded to avoid redundancy.
+    """
+    eval_cols = sorted(c for c in df.columns if 'EVal' in c)
+    results = []
+    inv_keys = None
+
+    for _, row in df.iterrows():
+        tensors = reconstruct_tensors(row)
+        inv = compute_invariants(tensors, max_degree=degree, symmetry=symmetry)
+
+        if inv_keys is None:
+            inv_keys = sorted(inv.keys())
+
+        results.append([inv[k] for k in inv_keys] + [row[c] for c in eval_cols])
+
+    feature_names = inv_keys + eval_cols
+    return np.array(results), feature_names
+
+
 def build_spharm_invariant_features(
     df: pd.DataFrame,
     spharm_df: pd.DataFrame,
@@ -448,6 +476,11 @@ def main():
             (f'SO3 Degree {deg}', lambda df, d=deg: build_invariant_features(df, max_degree=d))
         )
 
+    if args.max_so3_degree >= 1:
+        feature_sets.append(
+            ('SO3 Degree 1 + Eigenvalues', lambda df: build_invariants_eigen_features(df, 'SO3', 1))
+        )
+
     if args.max_so3_degree >= 2:
         feature_sets.append(
             ('SO3 Degree 2 + SO2 z-scalars', lambda df: build_so3d2_so2d1_extra_features(df))
@@ -459,6 +492,9 @@ def main():
     for deg in range(1, args.max_so2_degree + 1):
         feature_sets.append(
             (f'SO2 Degree {deg}', lambda df, d=deg: build_invariant_features(df, max_degree=d, symmetry='SO2'))
+        )
+        feature_sets.append(
+            (f'SO2 Degree {deg} + Eigenvalues', lambda df, d=deg: build_invariants_eigen_features(df, 'SO2', d))
         )
 
     for spharm_name, spharm_df in spharm_entries:
