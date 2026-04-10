@@ -354,6 +354,8 @@ def main():
     parser.add_argument('--spharm-input', type=str, action='append', default=None, help='Path to spherical harmonics CSV (repeatable)')
     parser.add_argument('--max-so3-degree', type=int, default=3, choices=[1, 2, 3], help='Maximum SO3 polynomial degree to evaluate (default: 3)')
     parser.add_argument('--max-so2-degree', type=int, default=0, choices=[0, 1, 2, 3], help='Maximum SO2 polynomial degree to evaluate (0=disabled, default: 0)')
+    parser.add_argument('--include', type=str, nargs='+', default=None, metavar='PATTERN',
+                        help='Only run feature sets whose names contain any of these substrings (case-insensitive). E.g. --include "SO2 Degree 1" "SO2 Degree 2"')
     parser.add_argument('--output', type=str, default='benchmarks/results', help='Output directory')
     parser.add_argument('--optimize', action='store_true', help='Run Bayesian optimization')
     parser.add_argument('--n_iter', type=int, default=50, help='Optimization iterations')
@@ -408,6 +410,14 @@ def main():
         feature_sets.append(
             (f'SPHARM Inv lmax={lmax_val}', lambda df, s=spharm_df, l=lmax_val: build_spharm_invariant_features(df, s, l))
         )
+
+    if args.include:
+        patterns = [p.lower() for p in args.include]
+        feature_sets = [(n, fn) for n, fn in feature_sets if any(p in n.lower() for p in patterns)]
+        if not feature_sets:
+            print(f"Error: no feature sets matched --include patterns: {args.include}")
+            sys.exit(1)
+        print(f"Filtered to {len(feature_sets)} feature set(s): {[n for n, _ in feature_sets]}")
 
     all_results = {}
     all_hyperparams = {}

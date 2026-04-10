@@ -1,0 +1,10 @@
+{
+  "SO2 Degree 1": {
+    "classifier__estimator__C": 21.81880113493869,
+    "pca__n_components": 16
+  },
+  "SO2 Degree 2": {
+    "classifier__estimator__C": 1000.0,
+    "pca__n_components": 94
+  }
+}

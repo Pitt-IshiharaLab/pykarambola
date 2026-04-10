@@ -1,0 +1,59 @@
+{
+  "SO2 Degree 1": {
+    "n_features": 18,
+    "feature_names": [
+      "w000",
+      "w010_z",
+      "w020",
+      "w020_zz",
+      "w100",
+      "w102_zz",
+      "w110_z",
+      "w120",
+      "w120_zz",
+      "w200",
+      "w202_zz",
+      "w210_z",
+      "w220",
+      "w220_zz",
+      "w300",
+      "w310_z",
+      "w320",
+      "w320_zz"
+    ],
+    "balanced_accuracy": {
+      "mean": 0.6737489144351888,
+      "std": 0.005986549377685361
+    },
+    "geometric_mean": {
+      "mean": 0.648937313257199,
+      "std": 0.008935510848575487
+    },
+    "runtime_seconds": {
+      "optimization": 13.7,
+      "evaluation": 0.3
+    }
+  },
+  "SO2 Degree 2": {
+    "n_features": 94,
+    "feature_names": "94 features",
+    "balanced_accuracy": {
+      "mean": 0.7573308538994814,
+      "std": 0.008389713314306633
+    },
+    "geometric_mean": {
+      "mean": 0.7514555202392588,
+      "std": 0.009009013835544212
+    },
+    "runtime_seconds": {
+      "optimization": 1915.2,
+      "evaluation": 47.5
+    }
+  },
+  "_meta": {
+    "total_runtime_seconds": 1979.9,
+    "n_iter": 20,
+    "seeds": 3,
+    "linear_only": true
+  }
+}
