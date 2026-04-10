@@ -95,12 +95,24 @@ The script now records per-run timing in the output JSON under `runtime_seconds`
 
 ---
 
+## Input Data
+
+| Role | File |
+|------|------|
+| Minkowski tensors | `Minkowski_classifier/data/allen_cell/mitotic_cells_annotated/nuclei/minkowski_tensors_with_eigen_vals.csv` |
+| SPHARM (lmax=5) | `Minkowski_classifier/data/allen_cell/mitotic_cells_annotated/nuclei/spherical_harmonics_lmax_5.csv` |
+
+Both files are under `~/Documents/GitHub/` on the local machine.
+The `nuclei/` directory contains non-rotated nuclei; the sibling `nuclei_rotated_only_in_xy/` directory holds rotationally augmented variants (not used here).
+
+---
+
 ## Configuration
 
 ```bash
 python benchmarks/invariants_classification.py \
-    --input /path/to/nuclei/minkowski_tensors_with_eigen_vals.csv \
-    --spharm-input /path/to/nuclei/spherical_harmonics_lmax_5.csv \
+    --input ../Minkowski_classifier/data/allen_cell/mitotic_cells_annotated/nuclei/minkowski_tensors_with_eigen_vals.csv \
+    --spharm-input ../Minkowski_classifier/data/allen_cell/mitotic_cells_annotated/nuclei/spherical_harmonics_lmax_5.csv \
     --output benchmarks/results/allen_cell_nuclei_optimized \
     --optimize \
     --n_iter 20 \
