@@ -19,8 +19,10 @@ against Minkowski tensor baselines, with and without explicit eigenvalue augment
 | Feature Set | # Feat | Balanced Accuracy | Geo. Mean | Best C | Best PCA |
 |-------------|--------|-------------------|-----------|--------|----------|
 | Minkowski (tensors) | 62 | 0.746 ± 0.006 | 0.737 ± 0.006 | 1000 | 54 |
+| Eigenvalues only | 18 | 0.791 ± 0.003 | 0.784 ± 0.005 | 37.2 | 16 |
+| Eigen + Beta | 24 | 0.808 ± 0.001 | 0.804 ± 0.001 | 225 | 24 |
 | Minkowski (tensors+eigen) | 80 | 0.806 ± 0.007 | 0.802 ± 0.008 | 977 | 66 |
-| Eigen + Beta | 24 | **0.808 ± 0.001** | **0.804 ± 0.001** | 225 | 24 |
+| Minkowski (tensors+eigen+beta) | 86 | **0.818 ± 0.004** | **0.815 ± 0.004** | 1.08 | 84 |
 
 ### SO3 Invariants (full rotation invariance)
 
@@ -99,12 +101,15 @@ than the restricted z-axis-preserving SO2 products.
 |--------|-------------|----------|-------------|
 | 8 | SO3 Degree 1 | 0.667 | — |
 | 18 | SO2 Degree 1 | 0.674 | +0.7 |
-| 24 | Eigen + Beta | 0.808 | +13.4 |
+| 18 | Eigenvalues only | 0.791 | — |
+| 24 | Eigen + Beta | 0.808 | — |
 | 26 | SO3 D1 + Eigen | 0.793 | — |
 | 36 | SO2 D1 + Eigen | 0.799 | — |
 | 39 | SO3 Degree 2 | 0.783 | — |
 | 57 | SO3 D2 + Eigen | **0.817** | peak |
+| 62 | Mink (tensors) | 0.746 | — |
 | 80 | Mink (tensors+eigen) | 0.806 | −1.1 vs peak |
+| 86 | Mink (tensors+eigen+beta) | **0.818** | ties peak |
 | 94 | SO2 Degree 2 | 0.757 | — |
 | 112 | SO2 D2 + Eigen | 0.787 | — |
 | 219 | SO3 Degree 3 | 0.795 | −2.2 vs peak |
@@ -117,11 +122,15 @@ added. All sets above 57 features perform worse despite 4–5× the feature coun
 
 - **Minkowski (tensors, 62)** = 0.746: below SO3 D2 (39 features, 0.783) — raw tensor components
   are a worse representation than polynomial invariants for linear classification
-- **Minkowski (tensors+eigen, 80)** = 0.806: between SO3 D2+E and SO3 D3+E, but with 23 more
-  features than the better-performing SO3 D2+E (57 features)
-- **Eigen + Beta (24)** = 0.808: effectively ties Minkowski (tensors+eigen) at 3.3× fewer features,
-  showing that the 62 raw tensor components add negligible information once eigenvalues and betas
-  are present
+- **Eigenvalues only (18)** = 0.791: beats SO3 D2 raw (0.783) at half the features; nearly matches
+  SO3 D1+E (26 features, 0.793) with 8 fewer features
+- **Eigen + Beta (24)** = 0.808: ties Minkowski (tensors+eigen, 80) at 3.3× fewer features; the 62
+  raw tensor components add negligible information once eigenvalues and betas are present
+- **Minkowski (tensors+eigen, 80)** = 0.806: sits between SO3 D2+E (0.817) and SO3 D3+E (0.804),
+  but with 23 more features than the better-performing SO3 D2+E
+- **Minkowski (tensors+eigen+beta, 86)** = 0.818: statistically ties SO3 D2+E (0.817) — the two
+  top-performing feature sets use entirely different representations (polynomial invariants vs
+  raw tensors + derived quantities), yet converge to the same performance ceiling on this task
 
 ---
 
@@ -129,9 +138,11 @@ added. All sets above 57 features perform worse despite 4–5× the feature coun
 
 | Priority | Feature Set | # Feat | Bal. Acc | When to use |
 |----------|-------------|--------|----------|-------------|
-| 1st | SO3 Degree 2 + Eigenvalues | 57 | **0.817** | Best overall performance |
-| 2nd | Eigen + Beta | 24 | 0.808 | Best efficiency (3.3× fewer features) |
+| 1st (tie) | SO3 Degree 2 + Eigenvalues | 57 | **0.817** | Best polynomial invariant set |
+| 1st (tie) | Minkowski (tensors+eigen+beta) | 86 | **0.818** | Best raw-tensor set; no symmetry assumption |
+| 2nd | Eigen + Beta | 24 | 0.808 | Best efficiency; 3–4× fewer features than top |
 | 3rd | SO2 Degree 1 + Eigenvalues | 36 | 0.799 | Simple, fast, captures z-axis asymmetry |
 | 4th | SO3 Degree 1 + Eigenvalues | 26 | 0.793 | Simplest full-SO3 set |
+| 5th | Eigenvalues only | 18 | 0.791 | Minimal viable feature set |
 | Avoid | SO3 Degree 3 (+E) | 219–237 | 0.795–0.804 | No gain over D2+E, 4× feature count |
 | Avoid | Minkowski (tensors) | 62 | 0.746 | Dominated by any eigen-augmented set |
