@@ -110,12 +110,12 @@ The high correlations cluster around invariants that differ only in which **curv
 | Commutator pseudo-scalars | 60 | ε·[T_i, T_j]·v_k — SO3 only |
 | **Total** | **219** | |
 
-### Effective Features on Centered Data (SO3 Degree 3)
+### Non-zero variance and observed rank (SO3 Degree 3)
 
 - **Zero-variance** (w010 ≈ 0): **7 features** (empirically verified; earlier theoretical estimate of 46 was incorrect)
-- **Remaining**: 212 features
-- **Linearly independent** (numerical): ~135 features
-- **Near-independent** (r < 0.95): ~120 features
+- **Non-zero variance**: 212 features
+- **Observed numerical rank**: ~135
+- **Low-correlation rank** (r < 0.95): ~120
 
 ---
 
@@ -125,14 +125,14 @@ The high correlations cluster around invariants that differ only in which **curv
 
 1. **7 degree-3 SO3 features are zero-variance** when meshes are centered (w010 ≈ 0); earlier estimate of 46 was incorrect
 2. **~77 additional features are near-redundant** due to data-specific correlations (212 − 135 = 77)
-3. Effective feature count: ~135 of 219, many highly correlated
+3. Observed numerical rank: ~135 of 219 non-zero-variance features, many highly correlated
 4. PCA compression helps, but degree-3 adds noise without proportional information gain
 
 ### Recommendation
 
 For centered mesh data (the common case):
-- **Degree 2** (39 features, ~35 effective) provides the best information/redundancy ratio
-- **Degree 3** adds 180 features but only ~100 effective independent dimensions
+- **Degree 2** (39 features, 38 non-zero variance) provides the best signal-to-redundancy ratio
+- **Degree 3** adds 180 features but observed rank grows by only ~100 additional independent dimensions
 - If orientation information is available (w010 ≠ 0), degree-3 features become more valuable
 
 ---

@@ -147,8 +147,8 @@ All Allen Cell nuclei meshes are centered to (0, 0, 0) before Minkowski tensor c
 (verified: w010 = 1e-5 constant for all 5606 samples). Any invariant that is quadratic in
 w010 is identically constant and zero-variance. The exact empirically verified counts are:
 
-| Symmetry | Degree | Total features | Zero-variance | Effective |
-|----------|--------|---------------|---------------|-----------|
+| Symmetry | Degree | Total | Zero-variance | Non-zero variance |
+|----------|--------|-------|---------------|-------------------|
 | SO3 | 1 | 8 | 0 | 8 |
 | SO3 | 2 | 39 | 1 | 38 |
 | SO3 | 3 | 219 | 7 | 212 |
@@ -162,13 +162,13 @@ are non-zero variance — they reduce to a rescaled sum of the other tensor's co
 A previous theoretical estimate of ~46 zero-variance features for SO3 D3 was incorrect;
 the actual count is 7.
 
-### Effective dimensionality of degree-3 invariants is much lower than nominal
+### Observed rank of degree-3 invariants is much lower than nominal
 
 Even after discarding the 7 zero-variance features, degree-3 polynomial invariants include
 many near-redundant terms under typical mesh data. Surface curvature is relatively uniform
 across medical imaging data, causing the four curvature-weighted tensors (w020, w120,
-w220, w320) to be highly correlated (r > 0.95 for many pairs). The effective number of
-linearly independent SO3 degree-3 features is ~135 of the nominal 219, and ~120 when
+w220, w320) to be highly correlated (r > 0.95 for many pairs). The observed numerical rank
+of SO3 degree-3 features is ~135 of the 212 non-zero-variance features, and ~120 when
 data-specific near-redundancies are removed. This explains why SO3 Degree 3 (219 features)
 performs only marginally above SO3 Degree 2 (39 features) despite the large nominal
 feature count increase.

@@ -23,8 +23,8 @@ This benchmark evaluates whether SO(3) rotational invariants computed from Minko
 
 **Note on centering**: Meshes were centered at their centroid before tensor computation, making **w010 = 0** for all samples (verified: w010 = 1e-5 constant across all samples in both datasets). This causes SO3 invariants that are **quadratic in w010** to have zero variance:
 
-| Feature Set | Total Features | Zero-Variance | Effective Features |
-|-------------|----------------|---------------|-------------------|
+| Feature Set | Total | Zero-variance | Non-zero variance |
+|-------------|-------|---------------|-------------------|
 | SO3 Degree 1 | 8 | 0 | 8 |
 | SO3 Degree 2 | 39 | 1 | 38 |
 | SO3 Degree 3 | 219 | 7 | 212 |
