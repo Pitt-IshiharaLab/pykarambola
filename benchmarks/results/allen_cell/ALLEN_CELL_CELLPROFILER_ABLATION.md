@@ -44,22 +44,22 @@ CellProfiler provides 22 features per nucleus: 8 pure shape descriptors and
 
 ## Results
 
-| Feature Set | # Feat | Balanced Accuracy | Geo. Mean | Best C | Best PCA |
-|-------------|--------|-------------------|-----------|--------|----------|
-| CellProfiler (SurfaceArea only) | 1 | 0.391 ± 0.003 | 0.000 ± 0.000 | 13.3 | 1 |
-| CellProfiler (Solidity only) | 1 | 0.451 ± 0.000 | 0.000 ± 0.000 | 423 | 1 |
-| CellProfiler (position only) | 14 | 0.609 ± 0.001 | 0.535 ± 0.003 | 225 | 14 |
-| CellProfiler (SurfaceArea + Solidity) | 2 | 0.609 ± 0.004 | 0.509 ± 0.014 | 37.5 | 2 |
-| CellProfiler (shape only) | 8 | 0.738 ± 0.008 | 0.727 ± 0.010 | 1000 | 8 |
-| CellProfiler (no SurfaceArea) | 21 | 0.728 ± 0.005 | 0.714 ± 0.005 | 1000 | 20 |
-| CellProfiler (no Solidity) | 21 | 0.738 ± 0.002 | 0.726 ± 0.002 | 1000 | 20 |
-| CellProfiler (no Volume) | 21 | 0.748 ± 0.008 | 0.738 ± 0.009 | 1000 | 14 |
-| CellProfiler (no MajorAxisLength) | 21 | 0.751 ± 0.002 | 0.742 ± 0.002 | 64.1 | 18 |
-| CellProfiler (no EquivalentDiameter) | 21 | 0.764 ± 0.003 | 0.755 ± 0.003 | 1.08 | 21 |
-| CellProfiler (no Extent) | 21 | 0.767 ± 0.002 | 0.761 ± 0.002 | 1000 | 20 |
-| CellProfiler (no MinorAxisLength) | 21 | 0.769 ± 0.003 | 0.763 ± 0.003 | 25.1 | 19 |
-| CellProfiler (no EulerNumber) | 21 | 0.772 ± 0.002 | 0.766 ± 0.002 | 225 | 21 |
-| CellProfiler (full) | 22 | **0.769 ± 0.003** | **0.761 ± 0.003** | 225 | 22 |
+| Feature Set | # Feat | Non-zero var | Rank | Balanced Accuracy | Geo. Mean | Best C | Best PCA |
+|-------------|--------|-------------|------|-------------------|-----------|--------|----------|
+| CellProfiler (SurfaceArea only) | 1 | 1 | 1 | 0.391 ± 0.003 | 0.000 ± 0.000 | 13.3 | 1 |
+| CellProfiler (Solidity only) | 1 | 1 | 1 | 0.451 ± 0.000 | 0.000 ± 0.000 | 423 | 1 |
+| CellProfiler (position only) | 14 | 14 | 11 | 0.609 ± 0.001 | 0.535 ± 0.003 | 225 | 14 |
+| CellProfiler (SurfaceArea + Solidity) | 2 | 2 | 2 | 0.609 ± 0.004 | 0.509 ± 0.014 | 37.5 | 2 |
+| CellProfiler (shape only) | 8 | 8 | 8 | 0.738 ± 0.008 | 0.727 ± 0.010 | 1000 | 8 |
+| CellProfiler (no SurfaceArea) | 21 | 21 | 18 | 0.728 ± 0.005 | 0.714 ± 0.005 | 1000 | 20 |
+| CellProfiler (no Solidity) | 21 | 21 | 18 | 0.738 ± 0.002 | 0.726 ± 0.002 | 1000 | 20 |
+| CellProfiler (no Volume) | 21 | 21 | 18 | 0.748 ± 0.008 | 0.738 ± 0.009 | 1000 | 14 |
+| CellProfiler (no MajorAxisLength) | 21 | 21 | 18 | 0.751 ± 0.002 | 0.742 ± 0.002 | 64.1 | 18 |
+| CellProfiler (no EquivalentDiameter) | 21 | 21 | 18 | 0.764 ± 0.003 | 0.755 ± 0.003 | 1.08 | 21 |
+| CellProfiler (no Extent) | 21 | 21 | 18 | 0.767 ± 0.002 | 0.761 ± 0.002 | 1000 | 20 |
+| CellProfiler (no MinorAxisLength) | 21 | 21 | 18 | 0.769 ± 0.003 | 0.763 ± 0.003 | 25.1 | 19 |
+| CellProfiler (no EulerNumber) | 21 | 21 | 18 | 0.772 ± 0.002 | 0.766 ± 0.002 | 225 | 21 |
+| CellProfiler (full) | 22 | 22 | 19 | **0.769 ± 0.003** | **0.761 ± 0.003** | 225 | 22 |
 
 ---
 
