@@ -141,14 +141,34 @@ the SO3 case.
 Performance peaks at 57 features (SO3 D2+E) and then declines or plateaus as features are
 added. All sets above 57 features perform worse despite 4–5× the feature count.
 
+### Exact zero-variance feature counts for centered mesh data
+
+All Allen Cell nuclei meshes are centered to (0, 0, 0) before Minkowski tensor computation
+(verified: w010 = 1e-5 constant for all 5606 samples). Any invariant that is quadratic in
+w010 is identically constant and zero-variance. The exact empirically verified counts are:
+
+| Symmetry | Degree | Total features | Zero-variance | Effective |
+|----------|--------|---------------|---------------|-----------|
+| SO3 | 1 | 8 | 0 | 8 |
+| SO3 | 2 | 39 | 1 | 38 |
+| SO3 | 3 | 219 | 7 | 212 |
+| SO2 | 1 | 18 | 1 | 17 |
+| SO2 | 2 | 94 | 2 | 92 |
+| SO2 | 3 | 754 | 14 | 740 |
+
+Zero-variance features are exclusively those where w010 appears **twice** in the polynomial
+(e.g. `dot_w010_w010`, `qf_w010_W_w010`). Features linear in w010 (e.g. `dot_w010_w110`)
+are non-zero variance — they reduce to a rescaled sum of the other tensor's components.
+A previous theoretical estimate of ~46 zero-variance features for SO3 D3 was incorrect;
+the actual count is 7.
+
 ### Effective dimensionality of degree-3 invariants is much lower than nominal
 
-Degree-3 polynomial invariants include many near-redundant terms under typical mesh data.
-When mesh centroids are zero (as is standard), w010 = 0 for all samples, making ~46
-degree-3 features zero-variance. Additionally, surface curvature is relatively uniform
+Even after discarding the 7 zero-variance features, degree-3 polynomial invariants include
+many near-redundant terms under typical mesh data. Surface curvature is relatively uniform
 across medical imaging data, causing the four curvature-weighted tensors (w020, w120,
 w220, w320) to be highly correlated (r > 0.95 for many pairs). The effective number of
-linearly independent degree-3 features is ~135 of the nominal 219, and ~120 when
+linearly independent SO3 degree-3 features is ~135 of the nominal 219, and ~120 when
 data-specific near-redundancies are removed. This explains why SO3 Degree 3 (219 features)
 performs only marginally above SO3 Degree 2 (39 features) despite the large nominal
 feature count increase.
