@@ -132,7 +132,7 @@ python benchmarks/invariants_classification.py \
     --input ../Minkowski_classifier/data/allen_cell/mitotic_cells_annotated/nuclei/minkowski_tensors_with_eigen_vals.csv \
     --spharm-input ../Minkowski_classifier/data/allen_cell/mitotic_cells_annotated/nuclei/spherical_harmonics_lmax_16.csv \
     --spharm-lmax 1 2 3 4 5 \
-    --output benchmarks/results/allen_cell_nuclei_spharm_systematic \
+    --output benchmarks/results/allen_cell/allen_cell_nuclei_spharm_systematic \
     --include "SPHARM" \
     --optimize \
     --n_iter 20 \
@@ -145,7 +145,7 @@ python benchmarks/invariants_classification.py \
     --input ../Minkowski_classifier/data/allen_cell/mitotic_cells_annotated/nuclei/minkowski_tensors_with_eigen_vals.csv \
     --spharm-input ../Minkowski_classifier/data/allen_cell/mitotic_cells_annotated/nuclei/spherical_harmonics_lmax_16.csv \
     --spharm-lmax 6 7 8 \
-    --output benchmarks/results/allen_cell_nuclei_spharm_systematic_678 \
+    --output benchmarks/results/allen_cell/allen_cell_nuclei_spharm_systematic_678 \
     --include "SPHARM" \
     --optimize \
     --n_iter 20 \

@@ -179,7 +179,7 @@ eigenvalue-augmented Minkowski set (Eigenvalues only: 0.791, +2.2 pp over CellPr
 python benchmarks/invariants_classification.py \
     --input ../Minkowski_classifier/data/allen_cell/mitotic_cells_annotated/nuclei/minkowski_tensors_with_eigen_vals.csv \
     --cellprofiler-input ../Minkowski_classifier/data/allen_cell/mitotic_cells_annotated/nuclei/cellprofiler_features.csv \
-    --output benchmarks/results/allen_cell_nuclei_cellprofiler_ablation \
+    --output benchmarks/results/allen_cell/allen_cell_nuclei_cellprofiler_ablation \
     --include "CellProfiler" \
     --optimize \
     --n_iter 20 \
@@ -191,7 +191,7 @@ python benchmarks/invariants_classification.py \
 python benchmarks/invariants_classification.py \
     --input ../Minkowski_classifier/data/allen_cell/mitotic_cells_annotated/nuclei/minkowski_tensors_with_eigen_vals.csv \
     --cellprofiler-input ../Minkowski_classifier/data/allen_cell/mitotic_cells_annotated/nuclei/cellprofiler_features.csv \
-    --output benchmarks/results/allen_cell_nuclei_cellprofiler_ablation2 \
+    --output benchmarks/results/allen_cell/allen_cell_nuclei_cellprofiler_ablation2 \
     --include "CellProfiler (no Solidity)" "CellProfiler (no Extent)" \
     --optimize \
     --n_iter 20 \
@@ -202,7 +202,7 @@ python benchmarks/invariants_classification.py \
 python benchmarks/invariants_classification.py \
     --input ../Minkowski_classifier/data/allen_cell/mitotic_cells_annotated/nuclei/minkowski_tensors_with_eigen_vals.csv \
     --cellprofiler-input ../Minkowski_classifier/data/allen_cell/mitotic_cells_annotated/nuclei/cellprofiler_features.csv \
-    --output benchmarks/results/allen_cell_nuclei_cellprofiler_shape_ablation \
+    --output benchmarks/results/allen_cell/allen_cell_nuclei_cellprofiler_shape_ablation \
     --include "CellProfiler (no EquivalentDiameter)" "CellProfiler (no EulerNumber)" "CellProfiler (no MajorAxisLength)" "CellProfiler (no MinorAxisLength)" "CellProfiler (no SurfaceArea)" "CellProfiler (no Volume)" \
     --optimize \
     --n_iter 20 \
@@ -214,7 +214,7 @@ python benchmarks/invariants_classification.py \
 python benchmarks/invariants_classification.py \
     --input ../Minkowski_classifier/data/allen_cell/mitotic_cells_annotated/nuclei/minkowski_tensors_with_eigen_vals.csv \
     --cellprofiler-input ../Minkowski_classifier/data/allen_cell/mitotic_cells_annotated/nuclei/cellprofiler_features.csv \
-    --output benchmarks/results/allen_cell_nuclei_cellprofiler_top2 \
+    --output benchmarks/results/allen_cell/allen_cell_nuclei_cellprofiler_top2 \
     --include "CellProfiler (SurfaceArea only)" "CellProfiler (Solidity only)" "CellProfiler (SurfaceArea + Solidity)" \
     --optimize \
     --n_iter 20 \
