@@ -21,15 +21,15 @@ This benchmark evaluates whether SO(3) rotational invariants computed from Minko
 
 **Note on preprocessing**: The Minkowski tensors were computed directly from MedMNIST 3D voxel segmentations using `minkowski_tensors_from_label_image()`. Before tensor computation, each object was **PCA-aligned**: the first principal component of the vertex positions (PC1, the axis of maximum spatial extent) was aligned to the x-axis. All tensor components are therefore expressed in this canonical coordinate frame, where the x-axis corresponds to the object's principal axis.
 
-**Note on centering**: Meshes were centered at their centroid before tensor computation, making **w010 = 0** for all samples. This causes some SO3 invariants to have zero variance:
+**Note on centering**: Meshes were centered at their centroid before tensor computation, making **w010 = 0** for all samples (verified: w010 = 1e-5 constant across all samples in both datasets). This causes SO3 invariants that are **quadratic in w010** to have zero variance:
 
 | Feature Set | Total Features | Zero-Variance | Effective Features |
 |-------------|----------------|---------------|-------------------|
 | SO3 Degree 1 | 8 | 0 | 8 |
-| SO3 Degree 2 | 39 | 4 | 35 |
-| SO3 Degree 3 | 219 | 46 | 173 |
+| SO3 Degree 2 | 39 | 1 | 38 |
+| SO3 Degree 3 | 219 | 7 | 212 |
 
-The zero-variance features are those involving w010 (dot products, quadratic forms, determinants, commutator pseudo-scalars). These are filtered out by PCA and do not affect classification, but could be omitted from computation for efficiency.
+Zero-variance features are exclusively those where w010 appears twice: `dot_w010_w010` (degree 2) and `qf_w010_W_w010` for each of the 6 rank-2 tensors (degree 3). Features linear in w010 (e.g. `dot_w010_w110`) retain non-zero variance. These are filtered out by PCA and do not affect classification, but could be omitted from computation for efficiency.
 
 ---
 
