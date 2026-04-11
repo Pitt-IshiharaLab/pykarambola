@@ -1,0 +1,6 @@
+{
+  "Eigenvalues only": {
+    "classifier__estimator__C": 37.224652603966504,
+    "pca__n_components": 16
+  }
+}

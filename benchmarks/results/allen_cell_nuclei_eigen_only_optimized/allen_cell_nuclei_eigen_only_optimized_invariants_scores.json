@@ -1,0 +1,43 @@
+{
+  "Eigenvalues only": {
+    "n_features": 18,
+    "feature_names": [
+      "w020_EVal1",
+      "w020_EVal2",
+      "w020_EVal3",
+      "w102_EVal1",
+      "w102_EVal2",
+      "w102_EVal3",
+      "w120_EVal1",
+      "w120_EVal2",
+      "w120_EVal3",
+      "w202_EVal1",
+      "w202_EVal2",
+      "w202_EVal3",
+      "w220_EVal1",
+      "w220_EVal2",
+      "w220_EVal3",
+      "w320_EVal1",
+      "w320_EVal2",
+      "w320_EVal3"
+    ],
+    "balanced_accuracy": {
+      "mean": 0.7913406499190813,
+      "std": 0.0034717814253826364
+    },
+    "geometric_mean": {
+      "mean": 0.7841107589713925,
+      "std": 0.004633359769718856
+    },
+    "runtime_seconds": {
+      "optimization": 31.7,
+      "evaluation": 1.0
+    }
+  },
+  "_meta": {
+    "total_runtime_seconds": 32.9,
+    "n_iter": 20,
+    "seeds": 3,
+    "linear_only": true
+  }
+}
