@@ -1,0 +1,6 @@
+{
+  "SO3 Degree 3": {
+    "classifier__estimator__C": 14.876994936709456,
+    "pca__n_components": 195
+  }
+}

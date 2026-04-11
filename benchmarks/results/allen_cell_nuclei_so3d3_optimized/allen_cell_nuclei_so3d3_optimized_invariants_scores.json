@@ -1,0 +1,24 @@
+{
+  "SO3 Degree 3": {
+    "n_features": 219,
+    "feature_names": "219 features",
+    "balanced_accuracy": {
+      "mean": 0.7950449558292695,
+      "std": 0.003786611522949013
+    },
+    "geometric_mean": {
+      "mean": 0.7860971487945912,
+      "std": 0.0046130416798818175
+    },
+    "runtime_seconds": {
+      "optimization": 1976.5,
+      "evaluation": 91.3
+    }
+  },
+  "_meta": {
+    "total_runtime_seconds": 2071.9,
+    "n_iter": 20,
+    "seeds": 3,
+    "linear_only": true
+  }
+}
