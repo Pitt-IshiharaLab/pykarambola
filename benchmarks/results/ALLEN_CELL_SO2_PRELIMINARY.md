@@ -18,10 +18,10 @@ Results use **default hyperparameters** (PCA=min(10, n_features), LinearSVC C=1.
 | 1 | **SO3 Degree 2** | 39 | **0.682 ± 0.004** | **0.669 ± 0.005** |
 | 2 | SO2 Degree 2 | 94 | 0.671 ± 0.009 | 0.658 ± 0.010 |
 | 3 | SO3 Degree 1 | 8 | 0.662 ± 0.008 | 0.630 ± 0.012 |
-| 4 | Baseline (w/ eigen) | 86 | 0.660 ± 0.005 | 0.622 ± 0.007 |
+| 4 | Minkowski (tensors+eigen+beta) | 86 | 0.660 ± 0.005 | 0.622 ± 0.007 |
 | 5 | SO2 Degree 1 | 18 | 0.646 ± 0.005 | 0.611 ± 0.009 |
 | 6 | SO3 Degree 3 | 219 | 0.626 ± 0.005 | 0.590 ± 0.007 |
-| 7 | Baseline (tensors) | 62 | 0.615 ± 0.004 | 0.570 ± 0.008 |
+| 7 | Minkowski (tensors) | 62 | 0.615 ± 0.004 | 0.570 ± 0.008 |
 | 8 | SO2 Degree 3 | 754 | 0.578 ± 0.001 | 0.526 ± 0.003 |
 
 Total runtime: **20 seconds** (n_jobs=5, Apple Silicon)
@@ -60,7 +60,7 @@ Degree 3 discards 95–99% of features at PCA=10 — these results are not infor
 ### Baseline drops vs previous preliminary
 
 The previous preliminary (ALLEN_CELL_PRELIMINARY.md) used RBF-SVC, while this run uses LinearSVC.
-Baseline (tensors) drops from 0.685 (RBF) to 0.615 (Linear), confirming that the RBF kernel is important for this feature set at default C.
+Minkowski (tensors) drops from 0.685 (RBF) to 0.615 (Linear), confirming that the RBF kernel is important for this feature set at default C.
 All comparisons within this table are internally consistent.
 
 ---

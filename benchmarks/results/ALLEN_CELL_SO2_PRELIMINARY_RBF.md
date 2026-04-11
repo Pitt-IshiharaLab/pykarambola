@@ -15,12 +15,12 @@ Results use **default hyperparameters** (PCA=min(10, n_features), RBF-SVC C=1.0)
 
 | Rank | Feature Set | # Features | Balanced Accuracy | Geo. Mean |
 |------|-------------|------------|-------------------|-----------|
-| 1 | Baseline (w/ eigen) | 86 | **0.725 ± 0.004** | **0.716 ± 0.006** |
+| 1 | Minkowski (tensors+eigen+beta) | 86 | **0.725 ± 0.004** | **0.716 ± 0.006** |
 | 2 | **SO2 Degree 1** | **18** | **0.716 ± 0.002** | **0.704 ± 0.002** |
 | 3 | SO3 Degree 2 | 39 | 0.715 ± 0.003 | 0.705 ± 0.003 |
 | 4 | SO3 Degree 1 | 8 | 0.703 ± 0.004 | 0.688 ± 0.004 |
 | 5 | SO2 Degree 2 | 94 | 0.682 ± 0.002 | 0.670 ± 0.001 |
-| 6 | Baseline (tensors) | 62 | 0.671 ± 0.005 | 0.645 ± 0.007 |
+| 6 | Minkowski (tensors) | 62 | 0.671 ± 0.005 | 0.645 ± 0.007 |
 | 7 | SO3 Degree 3 | 219 | 0.647 ± 0.001 | 0.636 ± 0.000 |
 | 8 | SO2 Degree 3 | 754 | 0.588 ± 0.013 | 0.564 ± 0.017 |
 
@@ -42,7 +42,7 @@ Total runtime: **38 seconds** (n_jobs=5, Apple Silicon)
 
 ### SO2 Degree 1 is the standout result
 
-With only 18 features, SO2 Degree 1 (0.716) ranks 2nd overall — essentially tied with SO3 Degree 2 (0.715, 39 features) and only 0.9 pp behind Baseline (w/ eigen) (0.725, 86 features).
+With only 18 features, SO2 Degree 1 (0.716) ranks 2nd overall — essentially tied with SO3 Degree 2 (0.715, 39 features) and only 0.9 pp behind Minkowski (tensors+eigen+beta) (0.725, 86 features).
 This is the only case where SO(2) outperforms SO(3) at the same degree (+1.3 pp).
 
 The SO(2) degree-1 feature set captures z-axis scalars: v_z components of rank-1 tensors, and both Tr(M)/3 and M_zz of rank-2 tensors.
@@ -64,7 +64,7 @@ SO2 Degree 3 also shows higher variance (± 0.013) reflecting instability under 
 ### Baseline scores consistent with previous preliminary
 
 SO3 invariant scores match `ALLEN_CELL_PRELIMINARY.md` exactly (0.703, 0.715, 0.647).
-Baseline (tensors) is slightly lower here (0.671 vs 0.685) due to 10 additional Tr() columns increasing compression at PCA=10; Baseline (w/ eigen) is very close (0.725 vs 0.732).
+Minkowski (tensors) is slightly lower here (0.671 vs 0.685) due to 10 additional Tr() columns increasing compression at PCA=10; Minkowski (tensors+eigen+beta) is very close (0.725 vs 0.732).
 
 ---
 

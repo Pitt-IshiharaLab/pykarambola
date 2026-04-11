@@ -40,17 +40,17 @@ The zero-variance features are those involving w010 (dot products, quadratic for
 | Rank | Feature Set | # Features | Balanced Accuracy | Optimal Params |
 |------|-------------|------------|-------------------|----------------|
 | 1 | **SO3 Degree 2** | 39 | **0.833 ± 0.004** | C=1000, linear, PCA=26 |
-| 2 | Baseline (w/ eigen) | 76 | 0.826 ± 0.013 | C=1000, linear, PCA=47 |
+| 2 | Minkowski (tensors+eigen+beta) | 76 | 0.826 ± 0.013 | C=1000, linear, PCA=47 |
 | 3 | SO3 Degree 3 | 219 | 0.824 ± 0.003 | C=1000, linear, PCA=65 |
-| 4 | Baseline (tensors) | 52 | 0.821 ± 0.015 | C=2.1, linear, PCA=39 |
+| 4 | Minkowski (tensors) | 52 | 0.821 ± 0.015 | C=2.1, linear, PCA=39 |
 | 5 | SO3 Degree 1 | 8 | 0.806 ± 0.007 | C=988, linear, PCA=6 |
 
 ### vessel3d 64
 
 | Rank | Feature Set | # Features | Balanced Accuracy | Optimal Params |
 |------|-------------|------------|-------------------|----------------|
-| 1 | **Baseline (tensors)** | 52 | **0.819 ± 0.001** | C=3.6, rbf, PCA=41 |
-| 2 | Baseline (w/ eigen) | 76 | 0.811 ± 0.015 | C=1000, rbf, PCA=67 |
+| 1 | **Minkowski (tensors)** | 52 | **0.819 ± 0.001** | C=3.6, rbf, PCA=41 |
+| 2 | Minkowski (tensors+eigen+beta) | 76 | 0.811 ± 0.015 | C=1000, rbf, PCA=67 |
 | 3 | SO3 Degree 3 | 219 | 0.798 ± 0.011 | C=0.1, linear, PCA=57 |
 | 4 | SO3 Degree 1 | 8 | 0.796 ± 0.012 | C=24, rbf, PCA=8 |
 | 5 | SO3 Degree 2 | 39 | 0.794 ± 0.006 | C=197, linear, PCA=39 |
@@ -64,9 +64,9 @@ The zero-variance features are those involving w010 (dot products, quadratic for
 | Feature Set | adrenal3d Rank | vessel3d Rank | Consistent? |
 |-------------|----------------|---------------|-------------|
 | SO3 Degree 2 | 1st (0.833) | 5th (0.794) | No |
-| Baseline (w/ eigen) | 2nd (0.826) | 2nd (0.811) | Yes |
+| Minkowski (tensors+eigen+beta) | 2nd (0.826) | 2nd (0.811) | Yes |
 | SO3 Degree 3 | 3rd (0.824) | 3rd (0.798) | Yes |
-| Baseline (tensors) | 4th (0.821) | 1st (0.819) | No |
+| Minkowski (tensors) | 4th (0.821) | 1st (0.819) | No |
 | SO3 Degree 1 | 5th (0.806) | 4th (0.796) | ~Yes |
 
 ### Key Observations
@@ -126,7 +126,7 @@ This suggests a **task-dependent feature selection strategy**:
 | adrenal3d | Mostly 1000 (max) | Clean data, well-separated classes, minimal regularization needed |
 | vessel3d | Varied (0.1 - 1000) | More overlap between classes, regularization helps generalization |
 
-**Exception**: adrenal3d Baseline (tensors) uses C=2.1, suggesting raw tensor components contain noise that regularization must suppress. The SO3 invariants and eigenvalues provide "cleaner" features that tolerate high C.
+**Exception**: adrenal3d Minkowski (tensors) uses C=2.1, suggesting raw tensor components contain noise that regularization must suppress. The SO3 invariants and eigenvalues provide "cleaner" features that tolerate high C.
 
 ### PCA Components
 
@@ -135,8 +135,8 @@ This suggests a **task-dependent feature selection strategy**:
 | SO3 Degree 1 (8 feat) | 6 (75%) | 8 (100%) | Most variance useful |
 | SO3 Degree 2 (39 feat) | 26 (67%) | 39 (100%) | Moderate compression helps adrenal |
 | SO3 Degree 3 (219 feat) | 65 (30%) | 57 (26%) | Heavy compression needed |
-| Baseline (tensors, 52) | 39 (75%) | 41 (79%) | Similar compression ratio |
-| Baseline (w/ eigen, 76) | 47 (62%) | 67 (88%) | Eigenvalues more useful for vessel |
+| Minkowski (tensors, 52) | 39 (75%) | 41 (79%) | Similar compression ratio |
+| Minkowski (tensors+eigen+beta, 76) | 47 (62%) | 67 (88%) | Eigenvalues more useful for vessel |
 
 **Insight**: Both datasets benefit from PCA dimensionality reduction, but optimal compression varies. Higher-degree invariants require more aggressive compression, suggesting many features are redundant or noisy.
 

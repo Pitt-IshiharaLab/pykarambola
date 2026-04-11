@@ -15,9 +15,9 @@ All results use **Bayesian hyperparameter optimization** (n_iter=20, 5-fold stra
 
 | Rank | Feature Set | # Features | Balanced Accuracy | Geo. Mean | Best C | Best PCA |
 |------|-------------|------------|-------------------|-----------|--------|----------|
-| 1 | **Baseline (w/ eigen)** | 86 | **0.818 ± 0.004** | **0.815 ± 0.004** | 1.08 | 84 |
+| 1 | **Minkowski (tensors+eigen+beta)** | 86 | **0.818 ± 0.004** | **0.815 ± 0.004** | 1.08 | 84 |
 | 2 | SO3 Degree 2 | 39 | 0.783 ± 0.002 | 0.778 ± 0.002 | 225 | 39 |
-| 3 | Baseline (tensors) | 62 | 0.746 ± 0.006 | 0.737 ± 0.006 | 1000 | 54 |
+| 3 | Minkowski (tensors) | 62 | 0.746 ± 0.006 | 0.737 ± 0.006 | 1000 | 54 |
 | 4 | **SPHARM Inv lmax=5** | **75** | **0.726 ± 0.004** | **0.713 ± 0.006** | **739** | **57** |
 | 5 | SO3 Degree 1 | 8 | 0.667 ± 0.004 | 0.636 ± 0.005 | 995 | 8 |
 | 6 | SPHARM lmax=5 | 72 | 0.597 ± 0.003 | 0.584 ± 0.004 | 0.39 | 57 |
@@ -28,9 +28,9 @@ All results use **Bayesian hyperparameter optimization** (n_iter=20, 5-fold stra
 
 | Feature Set | Preliminary (PCA=10, default C) | Optimized | Δ |
 |-------------|--------------------------------|-----------|---|
-| Baseline (w/ eigen) | 0.732 | **0.818** | **+0.086** |
+| Minkowski (tensors+eigen+beta) | 0.732 | **0.818** | **+0.086** |
 | SO3 Degree 2 | 0.715 | **0.783** | **+0.068** |
-| Baseline (tensors) | 0.685 | **0.746** | **+0.061** |
+| Minkowski (tensors) | 0.685 | **0.746** | **+0.061** |
 | **SPHARM Inv lmax=5** | **0.670** | **0.726** | **+0.056** |
 | SO3 Degree 1 | 0.703 | 0.667 | −0.036 |
 | SPHARM lmax=5 | 0.620 | 0.597 | −0.023 |
@@ -46,17 +46,17 @@ SPHARM Inv lmax=5 benefits substantially (+5.6 pp), joining the group of methods
 
 | Feature Set | Best C | Best PCA | n_features | PCA ratio |
 |-------------|--------|----------|------------|-----------|
-| Baseline (w/ eigen) | 1.08 | 84 | 86 | 98% retained |
+| Minkowski (tensors+eigen+beta) | 1.08 | 84 | 86 | 98% retained |
 | SO3 Degree 2 | 225 | 39 | 39 | 100% retained |
-| Baseline (tensors) | 1000 | 54 | 62 | 87% retained |
+| Minkowski (tensors) | 1000 | 54 | 62 | 87% retained |
 | **SPHARM Inv lmax=5** | **739** | **57** | **75** | **76% retained** |
 | SO3 Degree 1 | 995 | 8 | 8 | 100% retained |
 | SPHARM lmax=5 | 0.39 | 57 | 72 | 79% retained |
 
 Observations:
-- **Baseline (w/ eigen)**: very low C (strong regularisation), near-full PCA — the 86 components span nearly the full feature space but need regularisation to avoid overfitting
+- **Minkowski (tensors+eigen+beta)**: very low C (strong regularisation), near-full PCA — the 86 components span nearly the full feature space but need regularisation to avoid overfitting
 - **SO3 Degree 2 and Degree 1**: full PCA retained, high C — invariants already encode compact and discriminative representations; all dimensions contribute
-- **Baseline (tensors)**: high C, near-full PCA — raw tensor components need the margin pushed hard without regularisation penalty
+- **Minkowski (tensors)**: high C, near-full PCA — raw tensor components need the margin pushed hard without regularisation penalty
 - **SPHARM Inv lmax=5**: high C (C=739), moderate compression — the power spectrum + bispectrum features are well-conditioned and discriminative, in sharp contrast to raw SPHARM
 - **SPHARM lmax=5**: very low C (strong regularisation) despite moderate compression — the 72 spherical harmonic coefficients have high collinearity, requiring strong regularisation
 

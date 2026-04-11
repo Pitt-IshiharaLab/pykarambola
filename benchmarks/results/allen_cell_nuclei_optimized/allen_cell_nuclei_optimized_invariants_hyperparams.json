@@ -1,9 +1,9 @@
 {
-  "Baseline (tensors)": {
+  "Minkowski (tensors)": {
     "classifier__estimator__C": 1000.0,
     "pca__n_components": 54
   },
-  "Baseline (w/ eigen)": {
+  "Minkowski (tensors+eigen+beta)": {
     "classifier__estimator__C": 1.0801564116460842,
     "pca__n_components": 84
   },

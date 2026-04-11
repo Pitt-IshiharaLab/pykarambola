@@ -99,7 +99,7 @@ However, SPHARM Inv at lmax=8 still sits below Minkowski-based feature sets:
 - Eigenvalues only (18 features): 0.791 — already better than SPHARM Inv lmax=8 (224 features)
 - SO3 Degree 2 (39 features): 0.783
 - SO3 Degree 2 + Eigenvalues (57 features): 0.817
-- Baseline (w/ eigen, 86 features): 0.818
+- Minkowski (tensors+eigen+beta, 86 features): 0.818
 
 The SPHARM power spectrum + bispectrum is a signal derived from the surface mesh
 expansion, whereas the Minkowski tensor eigenvalues encode shape anisotropy more

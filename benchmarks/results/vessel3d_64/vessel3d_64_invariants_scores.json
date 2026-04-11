@@ -1,5 +1,5 @@
 {
-  "Baseline (tensors)": {
+  "Minkowski (tensors)": {
     "n_features": 52,
     "feature_names": "52 features",
     "balanced_accuracy": {
@@ -11,7 +11,7 @@
       "std": 0.0015016706194549453
     }
   },
-  "Baseline (w/ eigen)": {
+  "Minkowski (tensors+eigen+beta)": {
     "n_features": 76,
     "feature_names": "76 features",
     "balanced_accuracy": {

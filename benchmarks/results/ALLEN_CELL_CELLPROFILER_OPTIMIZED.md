@@ -47,7 +47,7 @@ directly comparable to all previous optimized runs.
 
 | Rank | Feature Set | # Features | Balanced Accuracy | Geo. Mean | Best C | Best PCA |
 |------|-------------|------------|-------------------|-----------|--------|----------|
-| 1 | Baseline (w/ eigen) | 86 | 0.818 ± 0.004 | 0.815 ± 0.004 | 1.08 | 84 |
+| 1 | Minkowski (tensors+eigen+beta) | 86 | 0.818 ± 0.004 | 0.815 ± 0.004 | 1.08 | 84 |
 | 1 | SO3 Degree 2 + Eigenvalues | 57 | 0.817 ± 0.003 | 0.814 ± 0.003 | 980 | 53 |
 | 3 | SO2 Degree 1 + Eigenvalues | 36 | 0.799 ± 0.005 | 0.795 ± 0.006 | 13.3 | 25 |
 | 4 | SO3 Degree 3 + Eigenvalues | 237 | 0.804 ± 0.005 | 0.797 ± 0.005 | 988 | 213 |
@@ -59,7 +59,7 @@ directly comparable to all previous optimized runs.
 | 9 | SO3 Degree 2 | 39 | 0.783 ± 0.002 | 0.778 ± 0.002 | 225 | 39 |
 | 11 | **CellProfiler** | **22** | **0.769 ± 0.003** | **0.761 ± 0.003** | **225** | **22** |
 | 12 | SO2 Degree 2 | 94 | 0.757 ± 0.008 | 0.751 ± 0.009 | 1000 | 94 |
-| 13 | Baseline (tensors) | 62 | 0.746 ± 0.006 | 0.737 ± 0.006 | 1000 | 54 |
+| 13 | Minkowski (tensors) | 62 | 0.746 ± 0.006 | 0.737 ± 0.006 | 1000 | 54 |
 | 14 | **CellProfiler (shape only)** | **8** | **0.738 ± 0.008** | **0.727 ± 0.010** | **1000** | **8** |
 | 15 | SPHARM Inv lmax=5 | 75 | 0.726 ± 0.004 | 0.713 ± 0.006 | 739 | 57 |
 | 16 | SO2 Degree 1 | 18 | 0.674 ± 0.006 | 0.649 ± 0.009 | 21.8 | 16 |
@@ -73,7 +73,7 @@ directly comparable to all previous optimized runs.
 ### CellProfiler is competitive despite a fundamentally different feature type
 
 At 0.769, CellProfiler ranks 8th out of 14 conditions and outperforms:
-- Baseline (tensors) (0.746) — raw Minkowski tensor components without eigenvalues
+- Minkowski (tensors) (0.746) — raw Minkowski tensor components without eigenvalues
 - SPHARM Inv lmax=5 (0.726) — rotation-invariant spherical harmonics power spectrum
 - All degree-1 invariant-only sets (SO3/SO2 Degree 1: 0.667–0.674)
 
@@ -83,12 +83,12 @@ surface area, axis lengths, bounding box, solidity, Euler number).
 
 ### CellProfiler vs Minkowski tensor baselines
 
-CellProfiler (0.769) beats Baseline (tensors) (0.746) by 2.3 pp despite having fewer
+CellProfiler (0.769) beats Minkowski (tensors) (0.746) by 2.3 pp despite having fewer
 features (22 vs 62) and no orientation information.
 This shows that the raw Minkowski tensor components, without eigenvalue decomposition, are
 less informative than a compact set of directly interpretable 3D shape measurements.
-The Minkowski baseline only overtakes CellProfiler once eigenvalues are added: Baseline
-(w/ eigen) reaches 0.818 (+4.9 pp over CellProfiler).
+The Minkowski baseline only overtakes CellProfiler once eigenvalues are added: Minkowski
+(tensors+eigen+beta) reaches 0.818 (+4.9 pp over CellProfiler).
 
 ### CellProfiler vs SO3 Degree 2
 

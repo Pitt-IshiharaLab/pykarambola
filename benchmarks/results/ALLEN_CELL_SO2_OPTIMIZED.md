@@ -25,10 +25,10 @@ SO(2) feature sets were run in isolation using `--include`; all other conditions
 
 | Rank | Feature Set | # Features | Balanced Accuracy | Geo. Mean | Best C | Best PCA |
 |------|-------------|------------|-------------------|-----------|--------|----------|
-| 1 | Baseline (w/ eigen) | 86 | 0.818 ± 0.004 | 0.815 ± 0.004 | 1.08 | 84 |
+| 1 | Minkowski (tensors+eigen+beta) | 86 | 0.818 ± 0.004 | 0.815 ± 0.004 | 1.08 | 84 |
 | 2 | SO3 Degree 2 | 39 | 0.783 ± 0.002 | 0.778 ± 0.002 | 225 | 39 |
 | 3 | **SO2 Degree 2** | **94** | **0.757 ± 0.008** | **0.751 ± 0.009** | **1000** | **94** |
-| 4 | Baseline (tensors) | 62 | 0.746 ± 0.006 | 0.737 ± 0.006 | 1000 | 54 |
+| 4 | Minkowski (tensors) | 62 | 0.746 ± 0.006 | 0.737 ± 0.006 | 1000 | 54 |
 | 5 | SPHARM Inv lmax=5 | 75 | 0.726 ± 0.004 | 0.713 ± 0.006 | 739 | 57 |
 | 6 | **SO2 Degree 1** | **18** | **0.674 ± 0.006** | **0.649 ± 0.009** | **21.8** | **16** |
 | 7 | SO3 Degree 1 | 8 | 0.667 ± 0.004 | 0.636 ± 0.005 | 995 | 8 |
@@ -40,8 +40,8 @@ SO(2) feature sets were run in isolation using `--include`; all other conditions
 
 ### SO2 Degree 2 is the standout result
 
-At 0.757, SO2 Degree 2 ranks 3rd overall — above Baseline (tensors) (0.746) and SPHARM Inv lmax=5 (0.726), and only 2.6 pp below SO3 Degree 2 (0.783).
-The optimizer selected **full PCA (94/94, 100% retained)** and **maximum C (1000)**, the same hard-margin pattern as Baseline (tensors) (C=1000) and SPHARM Inv lmax=5 (C=739).
+At 0.757, SO2 Degree 2 ranks 3rd overall — above Minkowski (tensors) (0.746) and SPHARM Inv lmax=5 (0.726), and only 2.6 pp below SO3 Degree 2 (0.783).
+The optimizer selected **full PCA (94/94, 100% retained)** and **maximum C (1000)**, the same hard-margin pattern as Minkowski (tensors) (C=1000) and SPHARM Inv lmax=5 (C=739).
 This confirms that SO2 Degree 2 features are well-conditioned and benefit from retaining all dimensions.
 
 ### SO2 Degree 2 gains massively from optimization (+8.6 pp vs unoptimized RBF)

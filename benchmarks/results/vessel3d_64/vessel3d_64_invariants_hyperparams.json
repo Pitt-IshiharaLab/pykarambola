@@ -1,11 +1,11 @@
 {
-  "Baseline (tensors)": {
+  "Minkowski (tensors)": {
     "classifier__estimator__C": 3.625919672638014,
     "classifier__estimator__gamma": "scale",
     "classifier__estimator__kernel": "rbf",
     "pca__n_components": 41
   },
-  "Baseline (w/ eigen)": {
+  "Minkowski (tensors+eigen+beta)": {
     "classifier__estimator__C": 1000.0,
     "classifier__estimator__gamma": "auto",
     "classifier__estimator__kernel": "rbf",

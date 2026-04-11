@@ -24,12 +24,12 @@ Bayesian-optimized results for two combination feature sets, directly comparable
 
 | Rank | Feature Set | # Features | Balanced Accuracy | Geo. Mean | Best C | Best PCA |
 |------|-------------|------------|-------------------|-----------|--------|----------|
-| 1 | Baseline (w/ eigen) | 86 | 0.818 ± 0.004 | 0.815 ± 0.004 | 1.08 | 84 |
+| 1 | Minkowski (tensors+eigen+beta) | 86 | 0.818 ± 0.004 | 0.815 ± 0.004 | 1.08 | 84 |
 | 1 | **SO3 Degree 2 + Eigenvalues** | **57** | **0.817 ± 0.003** | **0.814 ± 0.003** | **980** | **53** |
 | 3 | **SO3 Degree 2 + SO2 z-scalars** | **49** | **0.784 ± 0.007** | **0.778 ± 0.008** | **225** | **49** |
 | 3 | SO3 Degree 2 | 39 | 0.783 ± 0.002 | 0.778 ± 0.002 | 225 | 39 |
 | 5 | SO2 Degree 2 | 94 | 0.757 ± 0.008 | 0.751 ± 0.009 | 1000 | 94 |
-| 6 | Baseline (tensors) | 62 | 0.746 ± 0.006 | 0.737 ± 0.006 | 1000 | 54 |
+| 6 | Minkowski (tensors) | 62 | 0.746 ± 0.006 | 0.737 ± 0.006 | 1000 | 54 |
 | 7 | SPHARM Inv lmax=5 | 75 | 0.726 ± 0.004 | 0.713 ± 0.006 | 739 | 57 |
 | 8 | SO2 Degree 1 | 18 | 0.674 ± 0.006 | 0.649 ± 0.009 | 21.8 | 16 |
 | 9 | SO3 Degree 1 | 8 | 0.667 ± 0.004 | 0.636 ± 0.005 | 995 | 8 |
@@ -39,13 +39,13 @@ Bayesian-optimized results for two combination feature sets, directly comparable
 
 ## Interpretation
 
-### SO3 Degree 2 + Eigenvalues matches Baseline (w/ eigen) with 34% fewer features
+### SO3 Degree 2 + Eigenvalues matches Minkowski (tensors+eigen+beta) with 34% fewer features
 
 At 0.817 vs 0.818, the two are statistically indistinguishable (overlapping error bars).
 SO3 Degree 2 + Eigenvalues achieves equivalent performance using 57 features vs 86, while being a more principled feature set: it replaces orientation-dependent raw tensor components with rotation-invariant degree-2 polynomial invariants, retaining only the eigenvalues as the shape-encoding complement.
 
 The C contrast confirms this interpretation:
-- **Baseline (w/ eigen): C=1.08** — strong regularisation forced by collinearity between raw tensor components and their derived eigenvalues
+- **Minkowski (tensors+eigen+beta): C=1.08** — strong regularisation forced by collinearity between raw tensor components and their derived eigenvalues
 - **SO3 Degree 2 + Eigenvalues: C=980** — hard margin optimal because SO3 invariants and eigenvalues are non-collinear; each dimension contributes independently
 
 Same performance, opposite regularisation regimes — the underlying reason is that replacing raw tensors with their rotation invariants eliminates the source of collinearity.
@@ -56,9 +56,9 @@ Same performance, opposite regularisation regimes — the underlying reason is t
 The 10 extra z-axis scalars (v_z components and M_zz components) provide no additional discriminative signal beyond what SO3 Degree 2 already captures at the degree-2 level.
 This contrasts with the preliminary RBF finding where SO2 Degree 1 beat SO3 Degree 1 — the degree-2 invariants appear to already encode sufficient z-axis shape information.
 
-### The eigenvalues are the key ingredient in Baseline (w/ eigen)
+### The eigenvalues are the key ingredient in Minkowski (tensors+eigen+beta)
 
-Comparing Baseline (tensors) (0.746) → Baseline (w/ eigen) (0.818): adding eigenvalues to raw tensors gains +7.2 pp but introduces collinearity (C drops from 1000 to 1.08).
+Comparing Minkowski (tensors) (0.746) → Minkowski (tensors+eigen+beta) (0.818): adding eigenvalues to raw tensors gains +7.2 pp but introduces collinearity (C drops from 1000 to 1.08).
 Comparing SO3 Degree 2 (0.783) → SO3 Degree 2 + Eigenvalues (0.817): adding eigenvalues to rotation invariants gains +3.4 pp with no collinearity penalty (C stays high at 980).
 
 The eigenvalues contribute ~3–7 pp regardless of what they are combined with.

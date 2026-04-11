@@ -39,8 +39,8 @@ These are rotation-invariant scalar features (traces and normalised traces of ra
 
 | Feature Set | # Features used | # Excluded |
 |-------------|----------------|------------|
-| Baseline (tensors) | 52 | 10 trace columns |
-| Baseline (w/ eigen) | 76 | 10 trace columns |
+| Minkowski (tensors) | 52 | 10 trace columns |
+| Minkowski (tensors+eigen+beta) | 76 | 10 trace columns |
 | SO3 Degree 1–3 | 8 / 39 / 219 | 0 (unaffected) |
 
 ### Spherical harmonics availability
@@ -62,10 +62,10 @@ SPHARM lmax=5 was therefore only evaluated on the non-rotated dataset.
 
 | Rank | Feature Set | # Features | Balanced Accuracy | Geo. Mean |
 |------|-------------|------------|-------------------|-----------|
-| 1 | **Baseline (w/ eigen)** | 76 | **0.732 ± 0.003** | 0.725 ± 0.004 |
+| 1 | **Minkowski (tensors+eigen+beta)** | 76 | **0.732 ± 0.003** | 0.725 ± 0.004 |
 | 2 | SO3 Degree 2 | 39 | 0.715 ± 0.003 | 0.705 ± 0.003 |
 | 3 | SO3 Degree 1 | 8 | 0.703 ± 0.004 | 0.688 ± 0.004 |
-| 4 | Baseline (tensors) | 52 | 0.685 ± 0.003 | 0.664 ± 0.006 |
+| 4 | Minkowski (tensors) | 52 | 0.685 ± 0.003 | 0.664 ± 0.006 |
 | 5 | SO3 Degree 3 | 219 | 0.647 ± 0.001 | 0.636 ± 0.000 |
 | 6 | SPHARM lmax=5 | 72 | 0.620 ± 0.003 | 0.615 ± 0.003 |
 | 7 | SPHARM lmax=16 | 578 | 0.613 ± 0.003 | 0.588 ± 0.004 |
@@ -74,8 +74,8 @@ SPHARM lmax=5 was therefore only evaluated on the non-rotated dataset.
 
 | Rank | Feature Set | # Features | Balanced Accuracy | Geo. Mean |
 |------|-------------|------------|-------------------|-----------|
-| 1 | **Baseline (w/ eigen)** | 76 | **0.758 ± 0.005** | 0.754 ± 0.005 |
-| 2 | Baseline (tensors) | 52 | 0.736 ± 0.001 | 0.728 ± 0.001 |
+| 1 | **Minkowski (tensors+eigen+beta)** | 76 | **0.758 ± 0.005** | 0.754 ± 0.005 |
+| 2 | Minkowski (tensors) | 52 | 0.736 ± 0.001 | 0.728 ± 0.001 |
 | 3 | SO3 Degree 2 | 39 | 0.708 ± 0.001 | 0.696 ± 0.000 |
 | 4 | SO3 Degree 1 | 8 | 0.703 ± 0.004 | 0.688 ± 0.004 |
 | 5 | SO3 Degree 3 | 219 | 0.637 ± 0.003 | 0.625 ± 0.003 |
@@ -87,8 +87,8 @@ SPHARM lmax=5 was therefore only evaluated on the non-rotated dataset.
 
 | Feature Set | Non-rotated | XY-aligned | Δ |
 |-------------|-------------|------------|---|
-| Baseline (tensors) | 0.685 | **0.736** | **+0.051** |
-| Baseline (w/ eigen) | 0.732 | **0.758** | **+0.026** |
+| Minkowski (tensors) | 0.685 | **0.736** | **+0.051** |
+| Minkowski (tensors+eigen+beta) | 0.732 | **0.758** | **+0.026** |
 | SO3 Degree 1 | 0.703 | 0.703 | 0.000 |
 | SO3 Degree 2 | 0.715 | 0.708 | −0.007 |
 | SO3 Degree 3 | 0.647 | 0.637 | −0.010 |
@@ -102,14 +102,14 @@ SPHARM lmax=5 was therefore only evaluated on the non-rotated dataset.
 
 Aligning the long axis of each nucleus to the x-axis places all objects in a partially canonical reference frame. Minkowski tensor components encode **both shape and orientation** relative to the coordinate axes, so consistent alignment makes them more discriminative. After XY alignment:
 
-- Baseline (tensors) improves by +5.1%, Baseline (w/ eigen) by +2.6%
+- Minkowski (tensors) improves by +5.1%, Minkowski (tensors+eigen+beta) by +2.6%
 - Raw tensor components now carry consistent orientation signal in addition to shape
 
 ### SO3 invariants are unaffected by rotation (Δ ≈ 0)
 
 SO3 invariants are **rotation-invariant by construction**. Degree 1 is identical to 3 d.p. across both datasets; Degree 2/3 differ by ≤ 0.010, within seed noise. This confirms the invariant implementation is correct.
 
-**Key implication**: In the non-rotated setting, SO3 Degree 2 outperforms Baseline (tensors) (0.715 vs 0.685) — the invariants extract shape information that raw tensors obscure with pose noise. SO3 invariants achieve this without requiring any pre-alignment step.
+**Key implication**: In the non-rotated setting, SO3 Degree 2 outperforms Minkowski (tensors) (0.715 vs 0.685) — the invariants extract shape information that raw tensors obscure with pose noise. SO3 invariants achieve this without requiring any pre-alignment step.
 
 ### SPHARM is severely penalised by PCA=10
 

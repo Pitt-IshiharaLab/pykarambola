@@ -277,20 +277,20 @@ def build_spharm_features(
     return X, cols
 
 
-def build_baseline_features(df: pd.DataFrame, include_eigen: bool = False) -> tuple[np.ndarray, list[str]]:
+def build_baseline_features(df: pd.DataFrame, mode: str = 'tensors') -> tuple[np.ndarray, list[str]]:
     """Extract baseline raw tensor features.
 
-    Matches minkowski_classifier approach: use all columns from index 3+,
-    optionally filtering out beta/EVal columns.
+    mode='tensors'          — raw components + traces, no betas, no eigenvalues (62 features)
+    mode='tensors+eigen'    — tensors + eigenvalues, no betas (80 features)
+    mode='tensors+eigen+beta' — all columns including betas (86 features)
     """
-    # Get all feature columns (skip image_num, label, subfolder)
     all_feature_cols = df.columns[3:].tolist()
 
-    if include_eigen:
-        # tensors_with_eigen_values: use all columns
+    if mode == 'tensors+eigen+beta':
         cols = all_feature_cols
-    else:
-        # tensors: filter out beta and EVal columns
+    elif mode == 'tensors+eigen':
+        cols = [c for c in all_feature_cols if 'beta' not in c]
+    else:  # 'tensors'
         cols = [c for c in all_feature_cols if 'beta' not in c and 'EVal' not in c]
 
     X = df[cols].values
@@ -527,8 +527,9 @@ def main():
 
     # Define feature sets to evaluate
     feature_sets = [
-        ('Baseline (tensors)', lambda df: build_baseline_features(df, include_eigen=False)),
-        ('Baseline (w/ eigen)', lambda df: build_baseline_features(df, include_eigen=True)),
+        ('Minkowski (tensors)', lambda df: build_baseline_features(df, mode='tensors')),
+        ('Minkowski (tensors+eigen)', lambda df: build_baseline_features(df, mode='tensors+eigen')),
+        ('Minkowski (tensors+eigen+beta)', lambda df: build_baseline_features(df, mode='tensors+eigen+beta')),
         ('Eigenvalues only', lambda df: build_eigen_only_features(df)),
     ]
     for deg in range(1, args.max_so3_degree + 1):
