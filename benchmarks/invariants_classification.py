@@ -197,6 +197,17 @@ def build_invariants_eigen_features(
     return np.array(results), feature_names
 
 
+def build_cellprofiler_features(
+    df: pd.DataFrame,
+    cp_df: pd.DataFrame,
+) -> tuple[np.ndarray, list[str]]:
+    """Extract CellProfiler features, joined to df by image_num."""
+    merged = df[['image_num']].merge(cp_df, on='image_num', how='left')
+    cols = [c for c in cp_df.columns if c not in ('image_num', 'label', 'subfolder')]
+    X = merged[cols].values
+    return X, cols
+
+
 def build_spharm_invariant_features(
     df: pd.DataFrame,
     spharm_df: pd.DataFrame,
@@ -431,6 +442,7 @@ def main():
     parser = argparse.ArgumentParser(description='Benchmark SO(3) invariants for classification')
     parser.add_argument('--input', type=str, required=True, help='Path to CSV with Minkowski tensors')
     parser.add_argument('--spharm-input', type=str, action='append', default=None, help='Path to spherical harmonics CSV (repeatable)')
+    parser.add_argument('--cellprofiler-input', type=str, default=None, help='Path to CellProfiler features CSV')
     parser.add_argument('--max-so3-degree', type=int, default=3, choices=[1, 2, 3], help='Maximum SO3 polynomial degree to evaluate (default: 3)')
     parser.add_argument('--max-so2-degree', type=int, default=0, choices=[0, 1, 2, 3], help='Maximum SO2 polynomial degree to evaluate (0=disabled, default: 0)')
     parser.add_argument('--include', type=str, nargs='+', default=None, metavar='PATTERN',
@@ -495,6 +507,12 @@ def main():
         )
         feature_sets.append(
             (f'SO2 Degree {deg} + Eigenvalues', lambda df, d=deg: build_invariants_eigen_features(df, 'SO2', d))
+        )
+
+    if args.cellprofiler_input:
+        cp_df = pd.read_csv(args.cellprofiler_input)
+        feature_sets.append(
+            ('CellProfiler', lambda df, cp=cp_df: build_cellprofiler_features(df, cp))
         )
 
     for spharm_name, spharm_df in spharm_entries:
