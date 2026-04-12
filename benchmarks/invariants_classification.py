@@ -682,6 +682,9 @@ def main():
         feature_sets.append(
             (f'SO2 Degree {deg} + Eigenvalues', lambda df, d=deg: build_invariants_eigen_features(df, 'SO2', d))
         )
+        feature_sets.append(
+            (f'SO2 Degree {deg} + Eigenvalues + Beta', lambda df, d=deg: build_invariants_eigen_beta_features(df, 'SO2', d))
+        )
 
     if args.cellprofiler_input:
         cp_df = pd.read_csv(args.cellprofiler_input)

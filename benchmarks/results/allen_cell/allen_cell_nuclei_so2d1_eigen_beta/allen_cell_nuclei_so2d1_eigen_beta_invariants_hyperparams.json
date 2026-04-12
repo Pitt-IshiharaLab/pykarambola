@@ -1,0 +1,6 @@
+{
+  "SO2 Degree 1 + Eigenvalues + Beta": {
+    "classifier__estimator__C": 24.241954985845698,
+    "pca__n_components": 37
+  }
+}

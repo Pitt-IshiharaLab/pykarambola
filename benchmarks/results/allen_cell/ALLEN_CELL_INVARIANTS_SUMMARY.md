@@ -43,6 +43,7 @@ against Minkowski tensor baselines, with and without explicit eigenvalue augment
 |-------------|--------|-------------|------|-------------------|-----------|--------|----------|---------|
 | SO2 Degree 1 | 18 | 17 | 17 | 0.674 ± 0.006 | 0.649 ± 0.009 | 21.8 | 16 | — |
 | SO2 Degree 1 + Eigenvalues | 36 | 35 | 31 | 0.799 ± 0.005 | 0.795 ± 0.006 | 13.3 | 25 | **+12.5 pp** |
+| SO2 Degree 1 + Eigenvalues + Beta | 42 | 41 | 42 | 0.809 ± 0.002 | 0.806 ± 0.002 | 24.2 | 37 | **+1.0 pp** vs D1+E |
 | SO2 Degree 2 | 94 | 92 | 92 | 0.757 ± 0.008 | 0.751 ± 0.009 | 1000 | 94 | — |
 | SO2 Degree 2 + Eigenvalues | 112 | 110 | 106 | 0.787 ± 0.001 | 0.781 ± 0.001 | 225 | 111 | **+3.0 pp** |
 | SO2 Degree 3 | 754 | 740 | 740 | not run | — | — | — | — |
@@ -58,11 +59,11 @@ The most consistent pattern across both symmetry groups is that explicitly addin
 (the three sorted eigenvalues of each rank-2 tensor) produces diminishing gains as polynomial
 degree increases:
 
-| Degree | SO3 Δ Eigen | SO2 Δ Eigen |
-|--------|------------|------------|
-| 1 | +12.6 pp | +12.5 pp |
-| 2 | +3.4 pp | +3.0 pp |
-| 3 | +0.9 pp | (not run) |
+| Degree | SO3 Δ Eigen | SO3 Δ Beta (vs +E) | SO2 Δ Eigen | SO2 Δ Beta (vs +E) |
+|--------|------------|-------------------|------------|-------------------|
+| 1 | +12.6 pp | +2.1 pp | +12.5 pp | +1.0 pp |
+| 2 | +3.4 pp | +1.0 pp | +3.0 pp | (not run) |
+| 3 | +0.9 pp | (not run) | (not run) | (not run) |
 
 **Why**: Each rank-2 tensor W has three fundamental SO(3) invariants — I₁ = Tr(W),
 I₂ = (Tr(W)² − Tr(W²))/2, and I₃ = det(W). Degree-1 polynomial invariants capture only I₁;
@@ -70,6 +71,12 @@ eigenvalues add I₂ and I₃, hence the large +12.6 pp gain. Degree-2 already r
 through cross-tensor products, so eigenvalues only add I₃, giving +3.4 pp. Degree-3
 encodes all three invariants, leaving eigenvalues to provide only a pre-computed, better-
 conditioned representation — +0.9 pp.
+
+The beta gain (+1.0–2.1 pp at degree 1) follows the same diminishing pattern: beta indices
+(β = (λ₁−λ₃)/trace) are not expressible as linear combinations of eigenvalues, so they add
+genuine signal to a linear classifier at all degrees. The smaller beta gain for SO2 vs SO3
+at degree 1 (+1.0 pp vs +2.1 pp) reflects partial overlap with the z-axis orientation
+scalars already present in SO2 D1 features.
 
 ### SO3 Degree 2 + Eigenvalues + Beta is the best polynomial invariant set
 
@@ -143,6 +150,19 @@ frob_all (0.830) marginally exceeds D2+E+B (0.827) because D2+E+B also includes 
 near-zero dot products, which add 10 features of noise and push the classifier toward higher
 regularisation.
 
+**Note on reporting and selection bias.** D1+E+B+frob_all was assembled *after* observing
+the ablation results: dots were excluded because they performed poorly, not for reasons
+independent of this data. This constitutes post-hoc feature selection on the same folds used
+to evaluate it, which inflates apparent performance relative to a pre-specified design.
+A partial theoretical defence exists — frob_all is the complete Gram matrix of the rank-2
+tensor subspace (all pairwise Frobenius inner products), and excluding dots can be motivated
+independently by the near-degeneracy of w010 and the qualitatively different geometric meaning
+of rank-1 dot products vs. symmetric tensor alignment. Nevertheless, **SO3 D2+E+B (0.827)
+should be treated as the primary, pre-specified result**. The 0.003 pp difference between
+D1+E+B+frob_all and SO3 D2+E+B lies within the reported standard deviations (±0.005,
+±0.009) and the two sets are statistically indistinguishable. The ablation is best understood
+as an interpretation of why D2 works, not as an independent performance claim.
+
 ### SO3 Degree 1 + Eigenvalues ≈ Eigenvalues only
 
 SO3 Degree 1 + Eigenvalues (26 features, 0.793) adds only +0.2 pp over Eigenvalues only
@@ -184,6 +204,7 @@ the SO3 case.
 | 26 | SO3 D1 + Eigen | 0.793 | — |
 | 32 | SO3 D1 + Eigen + Beta | 0.814 | — |
 | 36 | SO2 D1 + Eigen | 0.799 | — |
+| 42 | SO2 D1 + Eigen + Beta | 0.809 | — |
 | 39 | SO3 Degree 2 | 0.783 | — |
 | 57 | SO3 D2 + Eigen | 0.817 | — |
 | 62 | Mink (tensors) | 0.746 | — |
@@ -254,6 +275,7 @@ feature count increase.
 | 2nd | Minkowski (tensors+eigen+beta) | 86 | 0.818 | Best raw-tensor set; no symmetry assumption |
 | 2nd | SO3 Degree 2 + Eigenvalues | 57 | 0.817 | Best without beta; cleaner SO3 invariants only |
 | 3rd | SO3 Degree 1 + Eigenvalues + Beta | 32 | 0.814 | Good efficiency; half the features of 1st |
+| 4th | SO2 Degree 1 + Eigenvalues + Beta | 42 | 0.809 | Best SO2 set; captures z-axis asymmetry + shape indices |
 | 4th | Eigen + Beta | 24 | 0.808 | Best efficiency; 2.6× fewer features than 1st |
 | 5th | SO2 Degree 1 + Eigenvalues | 36 | 0.799 | Simple, fast, captures z-axis asymmetry |
 | 6th | SO3 Degree 1 + Eigenvalues | 26 | 0.793 | Simplest full-SO3 set |
