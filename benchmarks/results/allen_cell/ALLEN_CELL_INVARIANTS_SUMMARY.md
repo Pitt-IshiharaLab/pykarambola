@@ -98,6 +98,51 @@ cross-tensor quadratic products Tr(WᵢWⱼ) contribute ~2.6 pp over eigenvalues
 eigenvalues contribute ~0.8 pp on top of SO3 D2. Per-tensor shape dominates; cross-tensor
 correlations add modest but real signal.
 
+### Which D2 features drive the gain from D1+E+B to D2+E+B?
+
+SO3 D2 adds 31 new features over D1: 10 dot products of rank-1 vectors and 21 Frobenius
+inner products of traceless rank-2 matrices. With w010 ≈ 0 for all centered meshes, the 4
+dot products involving w010 are near-zero. The remaining 27 active features split into three
+groups:
+
+| Group | Count | Formula | What it encodes |
+|---|---|---|---|
+| `frob_self` | 6 | `‖Tᵢ‖²_F = Tr(Tᵢ²) = λ₁²+λ₂²+λ₃²` | Per-tensor spectral energy |
+| `frob_cross` | 15 | `Tr(TᵢTⱼ)`, i≠j | Relative alignment of two tensors' principal axes |
+| `dots` (non-w010) | 6 | `dot(vᵢ, vⱼ)` for vᵢ ∈ {w110, w210, w310} | Surface moment magnitudes and mutual alignment |
+
+To identify which group is responsible for the +1.3 pp gain (D1+E+B 0.814 → D2+E+B 0.827),
+each group was added independently on top of D1+E+B:
+
+| Feature Set | # Feat | Bal. Acc | Δ vs D1+E+B |
+|---|---|---|---|
+| D1+E+B (baseline) | 32 | 0.814 ± 0.003 | — |
+| D1+E+B + dots | 38 | 0.811 ± 0.006 | −0.3 pp |
+| D1+E+B + frob_cross | 47 | 0.820 ± 0.008 | +0.6 pp |
+| D1+E+B + frob_self | 38 | 0.826 ± 0.003 | +1.2 pp |
+| D1+E+B + frob_all | 53 | **0.830 ± 0.005** | +1.6 pp |
+| D2+E+B (ceiling) | 63 | 0.827 ± 0.009 | +1.3 pp |
+
+**frob_self dominates** (+1.2 pp from 6 features), **frob_cross adds modest complementary
+signal** (+0.6 pp from 15 features), and **dots are useless or mildly harmful** (−0.3 pp).
+
+The dominance of frob_self is initially surprising — `‖Tᵢ‖²_F = λ₁²+λ₂²+λ₃²` is
+algebraically derivable from the eigenvalues already in the feature set. However, for a
+**linear** classifier, the squared norms cannot be expressed as linear combinations of λ₁,
+λ₂, λ₃: they require an explicit quadratic feature. frob_self effectively adds the second
+power of each tensor's spectral content, completing a degree-2 polynomial basis over the
+eigenvalue spectrum.
+
+frob_cross (`Tr(TᵢTⱼ)` for i≠j) encodes the relative orientation of two tensors' principal
+axes — information that is genuinely absent from per-tensor eigenvalues. Its smaller gain
+(+0.6 pp) suggests that cross-tensor alignment is less discriminative than per-tensor spectral
+energy for this task, or that the signal it carries is partially captured by the beta
+anisotropy indices already present.
+
+frob_all (0.830) marginally exceeds D2+E+B (0.827) because D2+E+B also includes the
+near-zero dot products, which add 10 features of noise and push the classifier toward higher
+regularisation.
+
 ### SO3 Degree 1 + Eigenvalues ≈ Eigenvalues only
 
 SO3 Degree 1 + Eigenvalues (26 features, 0.793) adds only +0.2 pp over Eigenvalues only

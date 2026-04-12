@@ -142,6 +142,63 @@ def build_invariants_eigen_beta_features(
     return np.array(results), feature_names
 
 
+def _is_self_frob(key: str) -> bool:
+    """Return True if key is a self-Frobenius product frob_T_T."""
+    rest = key[5:]  # strip 'frob_'
+    parts = rest.split('_')
+    return len(parts) == 2 and parts[0] == parts[1]
+
+
+def build_d1_eigen_beta_plus_d2_subset(
+    df: pd.DataFrame,
+    subset: str,
+) -> tuple[np.ndarray, list[str]]:
+    """D1 SO3 invariants + eigenvalues + beta + a named subset of D2-only features.
+
+    subset options:
+      'frob_self'  — 6 self-Frobenius products frob_T_T (= ||T||²_F per tensor)
+      'frob_cross' — 15 cross-Frobenius products frob_Ti_Tj (i≠j; inter-tensor alignment)
+      'frob_all'   — all 21 Frobenius inner products
+      'dots'       — 6 dot products of rank-1 vectors, excluding w010 (≈ 0)
+    """
+    eval_cols = sorted(c for c in df.columns if 'EVal' in c)
+    beta_cols = sorted(c for c in df.columns if c.startswith('beta'))
+    results = []
+    d1_keys = None
+    d2_extra_keys = None
+
+    for _, row in df.iterrows():
+        tensors = reconstruct_tensors(row)
+        d2_inv = compute_invariants(tensors, max_degree=2, symmetry='SO3')
+
+        if d1_keys is None:
+            all_keys = sorted(d2_inv.keys())
+            d1_keys = [k for k in all_keys if not k.startswith('dot_') and not k.startswith('frob_')]
+            frob_keys = [k for k in all_keys if k.startswith('frob_')]
+            dot_keys = [k for k in all_keys if k.startswith('dot_') and 'w010' not in k]
+
+            if subset == 'frob_self':
+                d2_extra_keys = [k for k in frob_keys if _is_self_frob(k)]
+            elif subset == 'frob_cross':
+                d2_extra_keys = [k for k in frob_keys if not _is_self_frob(k)]
+            elif subset == 'frob_all':
+                d2_extra_keys = frob_keys
+            elif subset == 'dots':
+                d2_extra_keys = dot_keys
+            else:
+                raise ValueError(f"Unknown subset: {subset!r}")
+
+        results.append(
+            [d2_inv[k] for k in d1_keys]
+            + [row[c] for c in eval_cols]
+            + [row[c] for c in beta_cols]
+            + [d2_inv[k] for k in d2_extra_keys]
+        )
+
+    feature_names = d1_keys + eval_cols + beta_cols + d2_extra_keys
+    return np.array(results), feature_names
+
+
 def build_so3d2_so2d1_extra_features(df: pd.DataFrame) -> tuple[np.ndarray, list[str]]:
     """SO3 Degree 2 + SO2 Degree 1 z-axis scalars not already in SO3 Degree 2.
 
@@ -598,6 +655,17 @@ def main():
         feature_sets.append(
             (f'SO3 Degree {deg} + Eigenvalues + Beta', lambda df, d=deg: build_invariants_eigen_beta_features(df, 'SO3', d))
         )
+
+    if args.max_so3_degree >= 2:
+        for subset, label in [
+            ('frob_self',  'SO3 D1+E+B + frob_self'),
+            ('frob_cross', 'SO3 D1+E+B + frob_cross'),
+            ('frob_all',   'SO3 D1+E+B + frob_all'),
+            ('dots',       'SO3 D1+E+B + dots'),
+        ]:
+            feature_sets.append(
+                (label, lambda df, s=subset: build_d1_eigen_beta_plus_d2_subset(df, s))
+            )
 
     if args.max_so3_degree >= 2:
         feature_sets.append(
