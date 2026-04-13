@@ -1,0 +1,25 @@
+{
+  "Minkowski (tensors+eigen+beta)": {
+    "n_features": 86,
+    "feature_names": "86 features",
+    "balanced_accuracy": {
+      "mean": 0.8327993530199412,
+      "std": 0.0
+    },
+    "geometric_mean": {
+      "mean": 0.8310503256460491,
+      "std": 0.0
+    },
+    "runtime_seconds": {
+      "optimization": 636.6,
+      "evaluation": 9.0
+    }
+  },
+  "_meta": {
+    "total_runtime_seconds": 645.7,
+    "n_iter": 30,
+    "seeds": 3,
+    "linear_only": false,
+    "classifier": "lgbm"
+  }
+}

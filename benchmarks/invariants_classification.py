@@ -54,6 +54,12 @@ except ImportError:
     HAS_SKOPT = False
     print("Warning: scikit-optimize not installed. Optimization disabled.")
 
+try:
+    from lightgbm import LGBMClassifier
+    HAS_LGBM = True
+except ImportError:
+    HAS_LGBM = False
+
 
 # Column definitions for tensor reconstruction
 SCALAR_COLS = ['w000', 'w100', 'w200', 'w300']
@@ -431,6 +437,155 @@ def create_pipeline(n_components: int, C: float, kernel: str = 'rbf', gamma: str
     ])
 
 
+def create_rf_pipeline(n_components: int, n_estimators: int = 100, max_depth=None,
+                       min_samples_leaf: int = 1, random_state: int = 0, n_jobs: int = -1):
+    """Create Random Forest classification pipeline."""
+    from sklearn.ensemble import RandomForestClassifier
+    classifier = RandomForestClassifier(
+        class_weight='balanced',
+        n_estimators=n_estimators,
+        max_depth=max_depth,
+        min_samples_leaf=min_samples_leaf,
+        random_state=random_state,
+        n_jobs=n_jobs,
+    )
+    return Pipeline([
+        ('scaler', StandardScaler()),
+        ('pca', PCA(n_components=n_components)),
+        ('classifier', classifier),
+    ])
+
+
+def create_lgbm_pipeline(n_components: int, n_estimators: int = 100, num_leaves: int = 31,
+                         learning_rate: float = 0.1, min_child_samples: int = 20,
+                         random_state: int = 0, n_jobs: int = -1):
+    """Create LightGBM classification pipeline."""
+    if not HAS_LGBM:
+        raise ImportError("lightgbm is not installed. Install it with: pip install lightgbm")
+    classifier = LGBMClassifier(
+        class_weight='balanced',
+        n_estimators=n_estimators,
+        num_leaves=num_leaves,
+        learning_rate=learning_rate,
+        min_child_samples=min_child_samples,
+        random_state=random_state,
+        n_jobs=n_jobs,
+        verbosity=-1,
+    )
+    return Pipeline([
+        ('scaler', StandardScaler()),
+        ('pca', PCA(n_components=n_components)),
+        ('classifier', classifier),
+    ])
+
+
+def optimize_hyperparams_rf(
+    X_train: np.ndarray,
+    y_train: np.ndarray,
+    n_iter: int = 50,
+    cv: int = 5,
+    random_state: int = 0,
+    n_jobs: int = -1,
+    verbose: int = 1,
+) -> dict:
+    """Run Bayesian optimization for Random Forest hyperparameters."""
+    from sklearn.ensemble import RandomForestClassifier
+    if not HAS_SKOPT:
+        return {
+            'pca__n_components': min(10, X_train.shape[1]),
+            'classifier__n_estimators': 100,
+            'classifier__max_depth': None,
+            'classifier__min_samples_leaf': 1,
+        }
+
+    pca_max = min(X_train.shape[1], X_train.shape[0] - 1)
+    pca_min = min(2, pca_max)
+
+    search_space = {
+        'classifier__n_estimators': Integer(50, 500),
+        'classifier__max_depth': Integer(2, 20),
+        'classifier__min_samples_leaf': Integer(1, 20),
+    }
+    if pca_min < pca_max:
+        search_space['pca__n_components'] = Integer(pca_min, pca_max)
+
+    pipeline = Pipeline([
+        ('scaler', StandardScaler()),
+        ('pca', PCA()),
+        ('classifier', RandomForestClassifier(class_weight='balanced', n_jobs=1)),
+    ])
+
+    cv_splitter = StratifiedKFold(n_splits=cv, shuffle=True, random_state=random_state)
+    opt = BayesSearchCV(
+        pipeline,
+        search_space,
+        n_iter=n_iter,
+        cv=cv_splitter,
+        scoring='balanced_accuracy',
+        refit=True,
+        n_jobs=n_jobs,
+        random_state=random_state,
+        verbose=verbose,
+    )
+    opt.fit(X_train, y_train)
+    return opt.best_params_
+
+
+def optimize_hyperparams_lgbm(
+    X_train: np.ndarray,
+    y_train: np.ndarray,
+    n_iter: int = 50,
+    cv: int = 5,
+    random_state: int = 0,
+    n_jobs: int = -1,
+    verbose: int = 1,
+) -> dict:
+    """Run Bayesian optimization for LightGBM hyperparameters."""
+    if not HAS_LGBM:
+        raise ImportError("lightgbm is not installed. Install it with: pip install lightgbm")
+    if not HAS_SKOPT:
+        return {
+            'pca__n_components': min(10, X_train.shape[1]),
+            'classifier__n_estimators': 100,
+            'classifier__num_leaves': 31,
+            'classifier__learning_rate': 0.1,
+            'classifier__min_child_samples': 20,
+        }
+
+    pca_max = min(X_train.shape[1], X_train.shape[0] - 1)
+    pca_min = min(2, pca_max)
+
+    search_space = {
+        'classifier__n_estimators': Integer(50, 500),
+        'classifier__num_leaves': Integer(15, 127),
+        'classifier__learning_rate': Real(0.01, 0.3, prior='log-uniform'),
+        'classifier__min_child_samples': Integer(5, 50),
+    }
+    if pca_min < pca_max:
+        search_space['pca__n_components'] = Integer(pca_min, pca_max)
+
+    pipeline = Pipeline([
+        ('scaler', StandardScaler()),
+        ('pca', PCA()),
+        ('classifier', LGBMClassifier(class_weight='balanced', n_jobs=1, verbosity=-1)),
+    ])
+
+    cv_splitter = StratifiedKFold(n_splits=cv, shuffle=True, random_state=random_state)
+    opt = BayesSearchCV(
+        pipeline,
+        search_space,
+        n_iter=n_iter,
+        cv=cv_splitter,
+        scoring='balanced_accuracy',
+        refit=True,
+        n_jobs=n_jobs,
+        random_state=random_state,
+        verbose=verbose,
+    )
+    opt.fit(X_train, y_train)
+    return opt.best_params_
+
+
 def optimize_hyperparams(
     X_train: np.ndarray,
     y_train: np.ndarray,
@@ -440,8 +595,20 @@ def optimize_hyperparams(
     n_jobs: int = -1,
     verbose: int = 1,
     linear_only: bool = False,
+    classifier_type: str = 'svm',
 ) -> dict:
     """Run Bayesian optimization to find best hyperparameters."""
+    if classifier_type == 'rf':
+        return optimize_hyperparams_rf(
+            X_train, y_train, n_iter=n_iter, cv=cv,
+            random_state=random_state, n_jobs=n_jobs, verbose=verbose,
+        )
+    elif classifier_type == 'lgbm':
+        return optimize_hyperparams_lgbm(
+            X_train, y_train, n_iter=n_iter, cv=cv,
+            random_state=random_state, n_jobs=n_jobs, verbose=verbose,
+        )
+
     if not HAS_SKOPT:
         # Return default params
         return {
@@ -522,18 +689,40 @@ def evaluate_single_run(
     random_state: int = 0,
     n_jobs: int = -1,
     linear_only: bool = False,
+    classifier_type: str = 'svm',
 ) -> dict[str, float]:
     """Train and evaluate a single run."""
-    pipeline = create_pipeline(
-        n_components=params.get('pca__n_components', 10),
-        C=params.get('classifier__estimator__C', 1.0),
-        kernel=params.get('classifier__estimator__kernel', 'rbf'),
-        gamma=params.get('classifier__estimator__gamma', 'scale'),
-        use_balanced=True,
-        random_state=random_state,
-        n_jobs=n_jobs,
-        linear_only=linear_only,
-    )
+    n_components = params.get('pca__n_components', 10)
+    if classifier_type == 'rf':
+        pipeline = create_rf_pipeline(
+            n_components=n_components,
+            n_estimators=params.get('classifier__n_estimators', 100),
+            max_depth=params.get('classifier__max_depth', None),
+            min_samples_leaf=params.get('classifier__min_samples_leaf', 1),
+            random_state=random_state,
+            n_jobs=n_jobs,
+        )
+    elif classifier_type == 'lgbm':
+        pipeline = create_lgbm_pipeline(
+            n_components=n_components,
+            n_estimators=params.get('classifier__n_estimators', 100),
+            num_leaves=params.get('classifier__num_leaves', 31),
+            learning_rate=params.get('classifier__learning_rate', 0.1),
+            min_child_samples=params.get('classifier__min_child_samples', 20),
+            random_state=random_state,
+            n_jobs=n_jobs,
+        )
+    else:
+        pipeline = create_pipeline(
+            n_components=n_components,
+            C=params.get('classifier__estimator__C', 1.0),
+            kernel=params.get('classifier__estimator__kernel', 'rbf'),
+            gamma=params.get('classifier__estimator__gamma', 'scale'),
+            use_balanced=True,
+            random_state=random_state,
+            n_jobs=n_jobs,
+            linear_only=linear_only,
+        )
 
     pipeline.fit(X_train, y_train)
     y_pred = pipeline.predict(X_test)
@@ -556,6 +745,7 @@ def run_evaluation(
     n_seeds: int = 3,
     n_jobs: int = -1,
     linear_only: bool = False,
+    classifier_type: str = 'svm',
 ) -> dict[str, tuple[float, float]]:
     """Run evaluation across multiple seeds and return mean ± std."""
     all_results = []
@@ -563,6 +753,7 @@ def run_evaluation(
         result = evaluate_single_run(
             X_train, y_train, X_test, y_test, params,
             random_state=seed, n_jobs=n_jobs, linear_only=linear_only,
+            classifier_type=classifier_type,
         )
         all_results.append(result)
 
@@ -602,10 +793,16 @@ def main():
     parser.add_argument('--optimize', action='store_true', help='Run Bayesian optimization')
     parser.add_argument('--n_iter', type=int, default=50, help='Optimization iterations')
     parser.add_argument('--linear-only', action='store_true', help='Restrict SVM kernel search to linear only')
+    parser.add_argument('--classifier', type=str, default='svm', choices=['svm', 'rf', 'lgbm'],
+                        help='Classifier type (default: svm)')
     parser.add_argument('--seeds', type=int, default=3, help='Number of random seeds for evaluation')
     parser.add_argument('--n_jobs', type=int, default=-1, help='Parallel jobs (-1 for all CPUs)')
     parser.add_argument('--verbose', type=int, default=1, help='Verbosity level')
     args = parser.parse_args()
+
+    if args.classifier == 'lgbm' and not HAS_LGBM:
+        print("Error: --classifier lgbm requires lightgbm. Install with: pip install lightgbm")
+        sys.exit(1)
 
     os.makedirs(args.output, exist_ok=True)
 
@@ -758,9 +955,25 @@ def main():
                 n_jobs=args.n_jobs,
                 verbose=args.verbose,
                 linear_only=args.linear_only,
+                classifier_type=args.classifier,
             )
+        elif args.classifier == 'rf':
+            params = {
+                'pca__n_components': min(10, X_train.shape[1]),
+                'classifier__n_estimators': 100,
+                'classifier__max_depth': None,
+                'classifier__min_samples_leaf': 1,
+            }
+        elif args.classifier == 'lgbm':
+            params = {
+                'pca__n_components': min(10, X_train.shape[1]),
+                'classifier__n_estimators': 100,
+                'classifier__num_leaves': 31,
+                'classifier__learning_rate': 0.1,
+                'classifier__min_child_samples': 20,
+            }
         else:
-            # Use defaults
+            # Use defaults (SVM)
             params = {
                 'pca__n_components': min(10, X_train.shape[1]),
                 'classifier__estimator__C': 1.0,
@@ -784,6 +997,7 @@ def main():
         results = run_evaluation(
             X_train, y_train, X_test, y_test, params,
             n_seeds=args.seeds, n_jobs=args.n_jobs, linear_only=args.linear_only,
+            classifier_type=args.classifier,
         )
         eval_time = time.time() - eval_start
 
@@ -815,6 +1029,7 @@ def main():
     # Save results - derive dataset name from output directory or input file
     dataset_name = os.path.basename(args.output.rstrip('/')) or \
                    os.path.basename(os.path.dirname(args.input))
+    clf_suffix = '' if args.classifier == 'svm' else f'_{args.classifier}'
 
     total_elapsed = time.time() - total_start
     total_h = int(total_elapsed // 3600)
@@ -822,19 +1037,20 @@ def main():
     total_s = int(total_elapsed % 60)
     print(f"\nTotal runtime: {total_h}h {total_m}m {total_s}s ({total_elapsed:.0f}s)")
 
-    results_path = os.path.join(args.output, f'{dataset_name}_invariants_scores.json')
+    results_path = os.path.join(args.output, f'{dataset_name}{clf_suffix}_invariants_scores.json')
     # Attach total runtime to saved results
     all_results['_meta'] = {
         'total_runtime_seconds': round(total_elapsed, 1),
         'n_iter': args.n_iter,
         'seeds': args.seeds,
         'linear_only': args.linear_only,
+        'classifier': args.classifier,
     }
     with open(results_path, 'w') as f:
         json.dump(all_results, f, indent=2, default=str)
     print(f"Results saved to: {results_path}")
 
-    hyperparams_path = os.path.join(args.output, f'{dataset_name}_invariants_hyperparams.json')
+    hyperparams_path = os.path.join(args.output, f'{dataset_name}{clf_suffix}_invariants_hyperparams.json')
     with open(hyperparams_path, 'w') as f:
         json.dump(all_hyperparams, f, indent=2, default=str)
     print(f"Hyperparams saved to: {hyperparams_path}")

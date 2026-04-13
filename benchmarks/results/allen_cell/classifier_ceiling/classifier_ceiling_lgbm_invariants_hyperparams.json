@@ -1,0 +1,9 @@
+{
+  "Minkowski (tensors+eigen+beta)": {
+    "classifier__learning_rate": 0.01,
+    "classifier__min_child_samples": 50,
+    "classifier__n_estimators": 342,
+    "classifier__num_leaves": 15,
+    "pca__n_components": 73
+  }
+}

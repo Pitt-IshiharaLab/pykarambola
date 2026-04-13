@@ -1,0 +1,8 @@
+{
+  "Minkowski (tensors+eigen+beta)": {
+    "classifier__max_depth": 17,
+    "classifier__min_samples_leaf": 10,
+    "classifier__n_estimators": 85,
+    "pca__n_components": 64
+  }
+}
