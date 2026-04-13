@@ -390,8 +390,192 @@ by the per-tensor shape indices (eigenvalues and anisotropy ratios) alone.
 
 ## Configuration
 
-All runs used identical optimization settings. For per-study shell commands and output paths, see:
+Minkowski baselines (`Eigenvalues only`, `Eigen + Beta`, `Minkowski (tensors)*`) and the unoptimised
+SO3/SO2 Degree 1/2/3 baseline runs are documented in
+[ALLEN_CELL_EIGEN_BETA_ABLATION.md](ALLEN_CELL_EIGEN_BETA_ABLATION.md).
+`SO3 Degree 2 + Eigenvalues`, `SO3 Degree 1/2 + Eigenvalues` (SO2), are in `baselines/`.
+CellProfiler and SPHARM experiments: see
+[ALLEN_CELL_CELLPROFILER_ABLATION.md](ALLEN_CELL_CELLPROFILER_ABLATION.md) and
+[ALLEN_CELL_SPHARM_SYSTEMATIC.md](ALLEN_CELL_SPHARM_SYSTEMATIC.md).
 
-- [ALLEN_CELL_EIGEN_BETA_ABLATION.md](ALLEN_CELL_EIGEN_BETA_ABLATION.md)
-- [ALLEN_CELL_CELLPROFILER_ABLATION.md](ALLEN_CELL_CELLPROFILER_ABLATION.md)
-- [ALLEN_CELL_SPHARM_SYSTEMATIC.md](ALLEN_CELL_SPHARM_SYSTEMATIC.md)
+The commands below correspond to the JSON files in `polynomial_invariants/` and `classifier_ceiling/`.
+All paths are relative to the repository root.
+`--include` uses case-insensitive substring matching; use the full feature-set name as the pattern to
+avoid unintended matches.
+
+### SO3 polynomial invariants — Degree 3 BayesOpt (`polynomial_invariants/so3/`)
+
+Two separate runs (~33 min each on Apple Silicon, n_jobs=5):
+
+```bash
+# SO3 Degree 3 alone  →  so3d3_optimized_invariants_{scores,hyperparams}.json
+python benchmarks/invariants_classification.py \
+    --input ../Minkowski_classifier/data/allen_cell/mitotic_cells_annotated/nuclei/minkowski_tensors_with_eigen_vals.csv \
+    --output benchmarks/results/allen_cell/polynomial_invariants/so3/allen_cell_nuclei_so3d3_optimized_invariants \
+    --max-so3-degree 3 \
+    --include "SO3 Degree 3" \
+    --optimize \
+    --n_iter 20 \
+    --linear-only \
+    --seeds 3 \
+    --n_jobs 5
+
+# SO3 Degree 3 + Eigenvalues  →  so3d3_eigen_optimized_invariants_{scores,hyperparams}.json
+python benchmarks/invariants_classification.py \
+    --input ../Minkowski_classifier/data/allen_cell/mitotic_cells_annotated/nuclei/minkowski_tensors_with_eigen_vals.csv \
+    --output benchmarks/results/allen_cell/polynomial_invariants/so3/allen_cell_nuclei_so3d3_eigen_optimized_invariants \
+    --max-so3-degree 3 \
+    --include "SO3 Degree 3 + Eigenvalues" \
+    --optimize \
+    --n_iter 20 \
+    --linear-only \
+    --seeds 3 \
+    --n_jobs 5
+```
+
+### SO3 polynomial invariants — D1/D2 + Eigenvalues + Beta (`polynomial_invariants/so3/`)
+
+```bash
+# SO3 Degree 1 + Eigenvalues + Beta  →  so3d1_eigen_beta_invariants_{scores,hyperparams}.json
+python benchmarks/invariants_classification.py \
+    --input ../Minkowski_classifier/data/allen_cell/mitotic_cells_annotated/nuclei/minkowski_tensors_with_eigen_vals.csv \
+    --output benchmarks/results/allen_cell/polynomial_invariants/so3/allen_cell_nuclei_so3d1_eigen_beta_invariants \
+    --max-so3-degree 1 \
+    --include "SO3 Degree 1 + Eigenvalues + Beta" \
+    --optimize \
+    --n_iter 20 \
+    --linear-only \
+    --seeds 3 \
+    --n_jobs 5
+
+# SO3 Degree 2 + Eigenvalues + Beta  →  so3d2_eigen_beta_invariants_{scores,hyperparams}.json
+python benchmarks/invariants_classification.py \
+    --input ../Minkowski_classifier/data/allen_cell/mitotic_cells_annotated/nuclei/minkowski_tensors_with_eigen_vals.csv \
+    --output benchmarks/results/allen_cell/polynomial_invariants/so3/allen_cell_nuclei_so3d2_eigen_beta_invariants \
+    --max-so3-degree 2 \
+    --include "SO3 Degree 2 + Eigenvalues + Beta" \
+    --optimize \
+    --n_iter 20 \
+    --linear-only \
+    --seeds 3 \
+    --n_jobs 5
+```
+
+### D2 feature-group ablation (`polynomial_invariants/so3/`)
+
+```bash
+# frob_self, frob_cross, frob_all, dots on top of D1+E+B  →  d2_ablation_invariants_{scores,hyperparams}.json
+python benchmarks/invariants_classification.py \
+    --input ../Minkowski_classifier/data/allen_cell/mitotic_cells_annotated/nuclei/minkowski_tensors_with_eigen_vals.csv \
+    --output benchmarks/results/allen_cell/polynomial_invariants/so3/allen_cell_nuclei_d2_ablation_invariants \
+    --max-so3-degree 2 \
+    --include "D1+E+B + frob_self" "D1+E+B + frob_cross" "D1+E+B + frob_all" "D1+E+B + dots" \
+    --optimize \
+    --n_iter 20 \
+    --linear-only \
+    --seeds 3 \
+    --n_jobs 5
+```
+
+### SO2 polynomial invariants (`polynomial_invariants/so2/`)
+
+```bash
+# SO2 Degree 1 and Degree 2 (standalone)  →  so2_optimized_invariants_{scores,hyperparams}.json
+python benchmarks/invariants_classification.py \
+    --input ../Minkowski_classifier/data/allen_cell/mitotic_cells_annotated/nuclei/minkowski_tensors_with_eigen_vals.csv \
+    --output benchmarks/results/allen_cell/polynomial_invariants/so2/allen_cell_nuclei_so2_optimized_invariants \
+    --max-so2-degree 2 \
+    --include "SO2 Degree 1" "SO2 Degree 2" \
+    --optimize \
+    --n_iter 20 \
+    --linear-only \
+    --seeds 3 \
+    --n_jobs 5
+
+# SO2 Degree 1 + Eigenvalues + Beta  →  so2d1_eigen_beta_invariants_{scores,hyperparams}.json
+python benchmarks/invariants_classification.py \
+    --input ../Minkowski_classifier/data/allen_cell/mitotic_cells_annotated/nuclei/minkowski_tensors_with_eigen_vals.csv \
+    --output benchmarks/results/allen_cell/polynomial_invariants/so2/allen_cell_nuclei_so2d1_eigen_beta_invariants \
+    --max-so2-degree 1 \
+    --include "SO2 Degree 1 + Eigenvalues + Beta" \
+    --optimize \
+    --n_iter 20 \
+    --linear-only \
+    --seeds 3 \
+    --n_jobs 5
+```
+
+### Classifier ceiling — RF and LightGBM (`classifier_ceiling/`)
+
+Three feature sets run in parallel (one process per condition, n_jobs=2 per process, 8-core machine).
+Runtimes: RF 177–274 s, LightGBM 247–647 s per condition.
+
+```bash
+# Random Forest — three conditions run concurrently
+python benchmarks/invariants_classification.py \
+    --input ../Minkowski_classifier/data/allen_cell/mitotic_cells_annotated/nuclei/minkowski_tensors_with_eigen_vals.csv \
+    --include "Eigen + Beta" \
+    --optimize \
+    --n_iter 30 \
+    --classifier rf \
+    --seeds 3 \
+    --n_jobs 2 &
+
+python benchmarks/invariants_classification.py \
+    --input ../Minkowski_classifier/data/allen_cell/mitotic_cells_annotated/nuclei/minkowski_tensors_with_eigen_vals.csv \
+    --max-so3-degree 2 \
+    --include "SO3 Degree 2 + Eigenvalues + Beta" \
+    --optimize \
+    --n_iter 30 \
+    --classifier rf \
+    --seeds 3 \
+    --n_jobs 2 &
+
+python benchmarks/invariants_classification.py \
+    --input ../Minkowski_classifier/data/allen_cell/mitotic_cells_annotated/nuclei/minkowski_tensors_with_eigen_vals.csv \
+    --output benchmarks/results/allen_cell/classifier_ceiling/classifier_ceiling_rf_invariants \
+    --include "Minkowski (tensors+eigen+beta)" \
+    --optimize \
+    --n_iter 30 \
+    --classifier rf \
+    --seeds 3 \
+    --n_jobs 2 &
+
+wait
+
+# LightGBM — same three conditions
+python benchmarks/invariants_classification.py \
+    --input ../Minkowski_classifier/data/allen_cell/mitotic_cells_annotated/nuclei/minkowski_tensors_with_eigen_vals.csv \
+    --include "Eigen + Beta" \
+    --optimize \
+    --n_iter 30 \
+    --classifier lgbm \
+    --seeds 3 \
+    --n_jobs 2 &
+
+python benchmarks/invariants_classification.py \
+    --input ../Minkowski_classifier/data/allen_cell/mitotic_cells_annotated/nuclei/minkowski_tensors_with_eigen_vals.csv \
+    --max-so3-degree 2 \
+    --include "SO3 Degree 2 + Eigenvalues + Beta" \
+    --optimize \
+    --n_iter 30 \
+    --classifier lgbm \
+    --seeds 3 \
+    --n_jobs 2 &
+
+python benchmarks/invariants_classification.py \
+    --input ../Minkowski_classifier/data/allen_cell/mitotic_cells_annotated/nuclei/minkowski_tensors_with_eigen_vals.csv \
+    --output benchmarks/results/allen_cell/classifier_ceiling/classifier_ceiling_lgbm_invariants \
+    --include "Minkowski (tensors+eigen+beta)" \
+    --optimize \
+    --n_iter 30 \
+    --classifier lgbm \
+    --seeds 3 \
+    --n_jobs 2 &
+
+wait
+```
+
+Only the `Minkowski (tensors+eigen+beta)` condition has a saved JSON in `classifier_ceiling/`; the
+`Eigen + Beta` and `SO3 Degree 2 + Eigenvalues + Beta` ceiling results were recorded from console
+output and are not stored as separate files.
