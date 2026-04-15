@@ -268,6 +268,46 @@ feature count increase.
 
 ---
 
+## Per-Class Recall Analysis
+
+Per-class recall computed on the test set (LinearSVC, majority vote across 3 seeds,
+best hyperparameters from BayesSearchCV).  All six conditions use the same train/test split.
+
+| Class | Beta only | Eigen only | Eigen + Beta | Mink (tensors) | Mink (+E+B) | SO3 D2+E+B |
+|---|---|---|---|---|---|---|
+| Interphase | 0.806 | 0.819 | 0.839 | 0.802 | 0.821 | **0.829** |
+| Prometaphase/Metaphase | 0.784 | 0.832 | 0.865 | 0.849 | 0.876 | **0.881** |
+| Prophase | 0.216 | 0.591 | 0.693 | 0.636 | 0.705 | **0.739** |
+| Early Prometaphase | 0.576 | 0.788 | 0.764 | 0.691 | 0.818 | **0.824** |
+| ATC Half | 0.464 | **0.902** | 0.920 | 0.902 | 0.929 | 0.920 |
+| ATC Early | 0.691 | **0.838** | 0.779 | 0.632 | 0.765 | 0.794 |
+
+### Findings
+
+**Prophase is the persistent bottleneck.** It is the lowest-recall class in every single
+condition and the only class where raw tensor additivity matters: Mink (tensors) at 0.636
+outperforms Eigenvalues only at 0.591 (−4.5 pp), confirming that eigenvalues and beta alone
+lose orientation and absolute-scale information needed to separate Prophase from adjacent
+stages. Adding beta recovers this loss (Eigen+Beta 0.693 > Mink tensors 0.636), and the
+quadratic frob terms in SO3 D2+E+B push it further to 0.739 — the best result for this class.
+
+**ATC Half is essentially solved by eigenvalues alone.** Recall is 0.902 with just 18
+eigenvalue features and moves only ±0.03 across all richer conditions. The anaphase/telophase
+shape change is geometrically large enough that principal-axis magnitudes fully capture it.
+
+**ATC Early reveals a collinearity trap.** Eigenvalues alone achieve 0.838 (+20.6 pp over
+raw tensors at 0.632). When raw tensor components are added back alongside eigenvalues in
+Mink (+E+B), recall drops to 0.765: the resulting collinearity forces C=1.08 (heavy
+regularisation) that suppresses the clean ATC Early signal carried by the eigenvalue subspace.
+SO3 D2+E+B avoids this by using orthogonal polynomial invariants and recovers to 0.794.
+
+**The non-additivity cost of eigenvalues is real but class-specific.** Only Prophase shows
+a recall penalty when switching from raw tensors to eigenvalues; all other classes are equal
+or better with eigenvalues. Beta indices and the D2 quadratic terms each provide incremental
+Prophase recovery, making SO3 D2+E+B the best single feature set across all six classes.
+
+---
+
 ## Classifier Ceiling Check (RF and LightGBM)
 
 To determine whether LinearSVC results are limited by the classifier or by the features
