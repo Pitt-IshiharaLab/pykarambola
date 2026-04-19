@@ -22,6 +22,7 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 ### Changed
 - `minkowski_tensors` now emits a `UserWarning` for **open surfaces** (meshes with boundary edges) and sets `w000` and `w020` to `NaN` for the affected labels, matching C++ karambola's behaviour. (#94)
 - `minkowski_tensors` now emits a `UserWarning` for **non-manifold meshes** (more permissive than the C++ CLI, which aborts). (#94)
+- `paper/notebooks/runtime_comparison.ipynb` and `paper/notebooks/benchmark_adrenal3d.ipynb` re-run with pykarambola 0.3.0 using the simplified `minkowski_tensors(tri)` Triangulation input API; updated result CSVs and figures committed.
 
 ---
 
