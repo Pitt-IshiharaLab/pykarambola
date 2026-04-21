@@ -9,6 +9,10 @@
 Given a mesh — a cell, a grain, a pore, a particle — it returns scalar, vector, and tensor quantities that rigorously characterize its size, shape, and orientation.
 These descriptors are useful whenever you need to compare or classify 3D shapes in a principled, rotation-aware way.
 
+<p align="center">
+  <img src="assets/social-preview.png" alt="pykarambola" width="100%"/>
+</p>
+
 Technically, these descriptors are **Minkowski tensors**: a family of quantities rooted in integral geometry that includes volume, surface area, integrated mean curvature, and Euler characteristic (the Minkowski functionals), as well as higher-rank tensors that capture anisotropy and preferred orientation.
 pykarambola is a Python implementation of [karambola](https://github.com/morphometry/karambola), the reference C++ package for Minkowski tensor computation on 3D triangulated surfaces.
 Minkowski tensors are widely used in bioimage analysis, structural biology, computational physics, and materials science.
