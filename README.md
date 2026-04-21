@@ -10,7 +10,7 @@ Given a mesh — a cell, a grain, a pore, a particle — it returns scalar, vect
 These descriptors are useful whenever you need to compare or classify 3D shapes in a principled, rotation-aware way.
 
 <p align="center">
-  <img src="assets/social-preview.png" alt="pykarambola" width="80%"/>
+  <img src="assets/social-preview.png" alt="pykarambola" width="60%"/>
 </p>
 
 Technically, these descriptors are **Minkowski tensors**: a family of quantities rooted in integral geometry that includes volume, surface area, integrated mean curvature, and Euler characteristic (the Minkowski functionals), as well as higher-rank tensors that capture anisotropy and preferred orientation.
