@@ -6,7 +6,7 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 -->
 <p align="center">
-  <img src="assets/social-preview.png" alt="pykarambola" width="60%"/>
+  <img src="assets/banner.png" alt="pykarambola" width="60%"/>
 </p>
 
 **pykarambola** computes shape descriptors for 3D objects represented as triangulated meshes.
