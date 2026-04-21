@@ -8,6 +8,7 @@
 <p align="center">
   <img src="assets/social-preview.png" alt="pykarambola" width="60%"/>
 </p>
+
 **pykarambola** computes shape descriptors for 3D objects represented as triangulated meshes.
 Given a mesh — a cell, a grain, a pore, a particle — it returns scalar, vector, and tensor quantities that rigorously characterize its size, shape, and orientation.
 These descriptors are useful whenever you need to compare or classify 3D shapes in a principled, rotation-aware way.
