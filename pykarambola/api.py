@@ -3,6 +3,7 @@ High-level API for computing Minkowski tensors from numpy arrays.
 """
 
 import warnings
+from typing import Union
 
 import numpy as np
 from scipy.sparse import csr_matrix
@@ -206,7 +207,7 @@ def _get_open_and_nonmanifold(surface):
     return open_labels, is_non_manifold
 
 
-def minkowski_tensors(verts, faces=None, labels=None, center=None, center_per_label=True,
+def minkowski_tensors(verts: Union[np.ndarray, Triangulation], faces=None, labels=None, center=None, center_per_label=True,
                       compute='standard', compute_eigensystems=True, return_count=False):
     """Compute Minkowski tensors on a triangulated surface.
 
