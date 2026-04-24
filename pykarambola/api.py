@@ -177,7 +177,6 @@ def _get_open_and_nonmanifold(surface):
             continue
         sum_tris = 1
         start = tris[0]
-        old_t = NEIGHBOUR_UNASSIGNED
         cur_t = tris[0]
         neigh_un = False
         for _ in range(len(tris)):
@@ -185,17 +184,19 @@ def _get_open_and_nonmanifold(surface):
                 (k for k in range(3) if surface.ith_vertex_of_triangle(cur_t, k) == i),
                 -1,
             )
-            if vid == -1 or surface.ith_neighbour_of_triangle(cur_t, vid) == NEIGHBOUR_UNASSIGNED:
+            # vid == -1 is a data-integrity error: vertex i was not found in a
+            # triangle reported to contain it. Should never occur in a valid
+            # Triangulation; treat conservatively as an open boundary.
+            assert vid != -1, f"Vertex {i} not found in any slot of triangle {cur_t}"
+            # NEIGHBOUR_UNASSIGNED signals a normal open (boundary) edge.
+            if surface.ith_neighbour_of_triangle(cur_t, vid) == NEIGHBOUR_UNASSIGNED:
                 neigh_un = True
                 break
             nxt = surface.ith_neighbour_of_triangle(cur_t, vid)
-            if old_t == nxt:
-                is_non_manifold = True
-                break
             if nxt == start:
                 break
             sum_tris += 1
-            old_t, cur_t = cur_t, nxt
+            cur_t = nxt
         if is_non_manifold:
             break
         if not neigh_un and len(tris) != sum_tris:

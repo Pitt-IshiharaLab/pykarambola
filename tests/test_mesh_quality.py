@@ -25,9 +25,10 @@ import pytest
 
 import pykarambola.triangulation as tri_module
 from pykarambola.triangulation import Triangulation, NEIGHBOUR_UNASSIGNED
-from pykarambola.api import minkowski_tensors
+from pykarambola.api import minkowski_tensors, minkowski_tensors_from_label_image
 from pykarambola.io_off import parse_off_file
 from pykarambola.io_obj import parse_obj_file
+from pykarambola.io_poly import parse_poly_file
 
 TEST_INPUTS = os.path.join(os.path.dirname(__file__), "fixtures")
 
@@ -529,8 +530,62 @@ class TestTriangulationInput:
         assert isinstance(result, dict)
         assert np.isfinite(result['w100'])
 
+    def test_poly_parser_triangulation_accepted(self):
+        """Triangulation returned by parse_poly_file can be passed directly."""
+        filepath = os.path.join(TEST_INPUTS, "box_a=2_b=3_c=4.poly")
+        tri = parse_poly_file(filepath)
+        result = minkowski_tensors(tri)
+        assert isinstance(result, dict)
+        assert np.isfinite(result['w100'])
+
+    def test_glb_parser_triangulation_accepted(self, tmp_path):
+        """Triangulation returned by parse_glb_file can be passed directly."""
+        trimesh = pytest.importorskip("trimesh")
+        from pykarambola.io_glb import parse_glb_file
+        box = trimesh.creation.box()
+        glb_path = tmp_path / "box.glb"
+        box.export(str(glb_path))
+        tri = parse_glb_file(str(glb_path))
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            result = minkowski_tensors(tri)
+        assert isinstance(result, dict)
+        assert np.isfinite(result['w100'])
+
     def test_faces_none_raises_without_triangulation(self):
         """Omitting faces when verts is a plain array must raise TypeError."""
         verts, _ = _box_mesh(2, 3, 4)
         with pytest.raises(TypeError, match="faces must be provided"):
             minkowski_tensors(verts)
+
+
+# ---------------------------------------------------------------------------
+# Issue #99: pad=True/False for boundary-touching objects
+# ---------------------------------------------------------------------------
+
+class TestPadParameter:
+    """Tests for the pad parameter in minkowski_tensors_from_label_image.
+
+    pad=True (default) adds a 1-voxel zero border before marching_cubes,
+    ensuring objects touching the array boundary produce closed surfaces.
+    pad=False leaves boundary-touching objects open, triggering the
+    open-surface warning wired in via issue #94.
+    """
+
+    def test_pad_closes_boundary_touching_object(self):
+        """pad=True must suppress open-surface warnings for boundary-touching objects."""
+        pytest.importorskip("skimage")
+        vol = np.zeros((10, 10, 10), dtype=int)
+        vol[0:5, 0:5, 0:5] = 1  # touches three boundary faces
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            minkowski_tensors_from_label_image(vol, pad=True)
+        assert not any("open surface" in str(x.message).lower() for x in w)
+
+    def test_no_pad_boundary_touching_warns(self):
+        """pad=False must emit an open-surface warning for boundary-touching objects."""
+        pytest.importorskip("skimage")
+        vol = np.zeros((10, 10, 10), dtype=int)
+        vol[0:5, 0:5, 0:5] = 1
+        with pytest.warns(UserWarning, match="[Oo]pen surface"):
+            minkowski_tensors_from_label_image(vol, pad=False)
