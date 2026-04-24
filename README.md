@@ -5,6 +5,10 @@
 [![Python versions](https://img.shields.io/pypi/pyversions/pykarambola)](https://pypi.org/project/pykarambola/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 -->
+<p align="center">
+  <img src="assets/banner.png" alt="pykarambola" width="60%"/>
+</p>
+
 **pykarambola** computes shape descriptors for 3D objects represented as triangulated meshes.
 Given a mesh — a cell, a grain, a pore, a particle — it returns scalar, vector, and tensor quantities that rigorously characterize its size, shape, and orientation.
 These descriptors are useful whenever you need to compare or classify 3D shapes in a principled, rotation-aware way.
