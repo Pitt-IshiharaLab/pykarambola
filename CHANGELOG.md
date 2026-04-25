@@ -10,7 +10,7 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Changed
-- Dependency lower bounds added: `numpy>=1.22`, `scipy>=1.8`; `scikit-image>=0.19` in the `dev` extra. (#64)
+- Dependency lower bounds added: `numpy>=1.22`, `scipy>=1.8`; `scikit-image>=0.19` in the `dev` and `notebooks` extras. These are conservative floors matching the oldest versions shipped with Python 3.9 in mainstream distributions as of early 2022. The package does not use any API introduced after these versions; the pins are a statement of tested compatibility. `[build-system]` numpy requirement updated to match. (#64)
 
 ### Fixed
 - `np.asarray` calls for `labels` and face-index arrays now specify `dtype=np.int64` explicitly, preventing silent coercion when callers pass float-dtype label arrays. (#64)
