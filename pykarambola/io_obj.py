@@ -18,6 +18,13 @@ def parse_obj_file(filepath, with_labels=False):
     Returns
     -------
     Triangulation
+
+    Examples
+    --------
+    >>> import pykarambola as pk
+    >>> tri = pk.parse_obj_file("my_surface.obj")
+    >>> result = pk.minkowski_tensors(tri)
+    >>> result["w000"]   # enclosed volume
     """
     tri = Triangulation()
 
