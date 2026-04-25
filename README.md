@@ -5,6 +5,10 @@
 [![Python versions](https://img.shields.io/pypi/pyversions/pykarambola)](https://pypi.org/project/pykarambola/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 -->
+<p align="center">
+  <img src="assets/banner.png" alt="pykarambola" width="60%"/>
+</p>
+
 **pykarambola** computes shape descriptors for 3D objects represented as triangulated meshes.
 Given a mesh — a cell, a grain, a pore, a particle — it returns scalar, vector, and tensor quantities that rigorously characterize its size, shape, and orientation.
 These descriptors are useful whenever you need to compare or classify 3D shapes in a principled, rotation-aware way.
@@ -20,6 +24,12 @@ Compared to the original C++ karambola, this Python port adds:
 - **OBJ and GLB parsers** — read Wavefront OBJ and binary glTF (`.glb`) meshes directly, in addition to the original `.poly` and `.off` formats.
 - **High-level API** — `minkowski_tensors()` accepts NumPy arrays and returns a plain dict, making it easy to integrate into pipelines without dealing with the lower-level triangulation types.
 - **Label-image API** — `minkowski_tensors_from_label_image()` extracts surfaces from a 3D integer label image via marching cubes and computes tensors for every label in one call.
+
+### What's new in 0.3.0
+
+- **`Triangulation` input** — `minkowski_tensors()` now accepts a `Triangulation` object directly (returned by any parser), so there is no need to unpack vertices and faces manually. Per-body labels embedded in the triangulation are extracted automatically.
+- **Surface quality checks** — open surfaces (meshes with boundary edges) now emit a `UserWarning` and set `w000` and `w020` to `NaN` for the affected labels, matching C++ karambola's behaviour. Non-manifold meshes also emit a warning (without aborting).
+- **Boundary padding** — `minkowski_tensors_from_label_image()` gains a `pad=True` default that adds a 1-voxel zero border before marching cubes, preventing open surfaces from objects that touch the array boundary.
 
 ## Requirements
 
@@ -127,7 +137,7 @@ print(result[2]["w000"])
 
 ## File I/O
 
-pykarambola can read four mesh formats. The parsers return a `Triangulation` object whose `.vertices` and `.triangles` arrays can be passed directly to `minkowski_tensors()`.
+pykarambola can read four mesh formats. The parsers return a `Triangulation` object that can be passed directly to `minkowski_tensors()`.
 
 ```python
 surface = pk.parse_poly_file("my_surface.poly")   # karambola native
@@ -135,7 +145,7 @@ surface = pk.parse_off_file("my_surface.off")     # Object File Format
 surface = pk.parse_obj_file("my_surface.obj")     # Wavefront OBJ  (new)
 surface = pk.parse_glb_file("my_surface.glb")     # binary glTF    (new, requires trimesh)
 
-result = pk.minkowski_tensors(surface.vertices, surface.triangles)
+result = pk.minkowski_tensors(surface)
 ```
 
 | Extension | Description |
@@ -182,7 +192,7 @@ Rank-2 tensors additionally yield `{name}_eigvals` and `{name}_eigvecs` entries.
 If you use pykarambola in published work, please cite both pykarambola and the original karambola package.
 
 > Ishihara, K., & Khurana, Y.
-> *pykarambola: A Python Package for Minkowski Tensor-based 3D Shape Analysis* (v0.2.0).
+> *pykarambola: A Python Package for Minkowski Tensor-based 3D Shape Analysis* (v0.3.0).
 > https://doi.org/10.5281/zenodo.XXXXXXX
 
 > Schaller, F. M., Kapfer, S. C., & Schröder-Turk, G. E.
