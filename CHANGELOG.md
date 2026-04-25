@@ -9,7 +9,16 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-*(Add entries here as you work. Move them to a versioned section when releasing.)*
+### Changed
+- Dependency lower bounds added: `numpy>=1.22`, `scipy>=1.8`; `scikit-image>=0.19` in the `dev` extra. (#64)
+
+### Fixed
+- `np.asarray` calls for `labels` and face-index arrays now specify `dtype=np.int64` explicitly, preventing silent coercion when callers pass float-dtype label arrays. (#64)
+
+### Documentation
+- Added `Examples` sections to `parse_obj_file`, `parse_off_file`, `parse_poly_file`, and `parse_glb_file` docstrings (numpydoc conformance). (#64)
+- Added `Notes` section to `calculate_eigensystem` clarifying its role relative to the high-level API. (#64)
+- Improved error message in `parse_poly_file` to report the actual token count when vertex coordinates are missing. (#64)
 
 ---
 

@@ -34,6 +34,13 @@ def parse_poly_file(filepath, with_labels=False):
     Returns
     -------
     Triangulation
+
+    Examples
+    --------
+    >>> import pykarambola as pk
+    >>> tri = pk.parse_poly_file("my_surface.poly")
+    >>> result = pk.minkowski_tensors(tri)
+    >>> result["w000"]   # enclosed volume
     """
     tri = Triangulation()
 
@@ -83,7 +90,9 @@ def parse_poly_file(filepath, with_labels=False):
         # Parse coordinates and properties
         tokens = _tokenize_with_parens(rest)
         if len(tokens) < 3:
-            raise ValueError(f"Cannot read coordinates for vertex {number}")
+            raise ValueError(
+                f"Expected at least 3 coordinates for vertex {number}, got {len(tokens)}"
+            )
 
         x, y, z = float(tokens[0]), float(tokens[1]), float(tokens[2])
         vert_id = tri.append_vertex(x, y, z, number)

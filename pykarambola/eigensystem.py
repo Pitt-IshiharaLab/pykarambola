@@ -27,6 +27,13 @@ def calculate_eigensystem(w_matrix_results):
     -------
     dict[int, MinkValResult]
         Eigensystem results keyed by label.
+
+    Notes
+    -----
+    Eigensystem computation is handled automatically by
+    :func:`pykarambola.minkowski_tensors` when ``compute_eigensystems=True``
+    (the default). Direct use of this function requires ``MinkValResult``
+    objects produced by the low-level ``calculate_w*`` functions.
     """
     eigsys_results = {}
 

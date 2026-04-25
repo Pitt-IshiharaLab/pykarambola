@@ -29,8 +29,8 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Physics",
 ]
 dependencies = [
-    "numpy",
-    "scipy",
+    "numpy>=1.22",
+    "scipy>=1.8",
 ]
 
 [project.urls]
@@ -38,7 +38,7 @@ Homepage = "https://github.com/Pitt-IshiharaLab/pykarambola"
 "Bug Tracker" = "https://github.com/Pitt-IshiharaLab/pykarambola/issues"
 
 [project.optional-dependencies]
-dev = ["pytest", "scikit-image"]
+dev = ["pytest", "scikit-image>=0.19"]
 accel = ["cython>=3.0"]
 glb = ["trimesh"]
 notebooks = ["scikit-image", "matplotlib", "seaborn", "pandas", "medmnist"]
