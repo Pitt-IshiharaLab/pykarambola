@@ -20,6 +20,19 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.3.0] - Unreleased
+
+### Added
+- `minkowski_tensors` now accepts a `Triangulation` object as its first argument; `faces` may be omitted. Works with objects returned by all four parsers (`parse_obj_file`, `parse_off_file`, `parse_poly_file`, `parse_glb_file`). Labels embedded in the triangulation are extracted automatically when they carry meaningful per-body information. (#90)
+- `pad=True` parameter in `minkowski_tensors_from_label_image`: applies a 1-voxel zero-padding on all six faces before calling `marching_cubes`, ensuring that objects touching the array boundary produce closed (non-open) surfaces. Vertex coordinates and `centroid_voxel` computations are corrected for the offset. Set `pad=False` to restore prior behaviour. (#99)
+
+### Changed
+- `minkowski_tensors` now emits a `UserWarning` for **open surfaces** (meshes with boundary edges) and sets `w000` and `w020` to `NaN` for the affected labels, matching C++ karambola's behaviour. (#94)
+- `minkowski_tensors` now emits a `UserWarning` for **non-manifold meshes** (more permissive than the C++ CLI, which aborts). (#94)
+- `minkowski_tensors_from_label_image` now pads the label image with a 1-voxel zero border by default (`pad=True`). Callers whose inputs already include padding, or who intentionally want open surfaces at the boundary, should pass `pad=False` to restore prior behaviour. (#99)
+
+---
+
 ## [0.2.0] - Unreleased
 
 ### Added
@@ -57,5 +70,7 @@ Initial Python port of [karambola](https://github.com/morphometry/karambola).
 
 ---
 
-[Unreleased]: https://github.com/Pitt-IshiharaLab/pykarambola/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Pitt-IshiharaLab/pykarambola/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/Pitt-IshiharaLab/pykarambola/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/Pitt-IshiharaLab/pykarambola/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Pitt-IshiharaLab/pykarambola/releases/tag/v0.1.0
