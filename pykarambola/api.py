@@ -3,12 +3,13 @@ High-level API for computing Minkowski tensors from numpy arrays.
 """
 
 import warnings
+from typing import Union
 
 import numpy as np
 from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import connected_components as _sp_connected_components
 
-from .triangulation import Triangulation
+from .triangulation import Triangulation, LABEL_UNASSIGNED, NEIGHBOUR_UNASSIGNED
 from .minkowski import (
     calculate_w000, calculate_w100, calculate_w200, calculate_w300,
     calculate_w010, calculate_w110, calculate_w210, calculate_w310,
@@ -149,16 +150,78 @@ def _count_mesh_components(faces):
     return int(np.unique(component_labels).size)
 
 
-def minkowski_tensors(verts, faces, labels=None, center=None, center_per_label=True,
+def _get_open_and_nonmanifold(surface):
+    """Return (open_labels, is_non_manifold) for a finalized Triangulation.
+
+    open_labels : set of int
+        Labels that have at least one boundary (open) edge.
+    is_non_manifold : bool
+        True if any vertex is non-manifold (more objects meet at a single vertex
+        than a closed or open fan allows).
+    """
+    nb = surface._neighbours   # (F, 3)
+    labels = surface._labels   # (F,)
+
+    # Open-edge detection per label
+    has_open = np.any(nb == NEIGHBOUR_UNASSIGNED, axis=1)
+    open_labels = (
+        set(int(l) for l in np.unique(labels[has_open]))
+        if np.any(has_open)
+        else set()
+    )
+
+    # Non-manifold detection via vertex fan traversal
+    is_non_manifold = False
+    for i in range(surface.n_vertices()):
+        tris = list(surface.get_triangles_of_vertex(i))
+        if len(tris) <= 1:
+            continue
+        sum_tris = 1
+        start = tris[0]
+        cur_t = tris[0]
+        neigh_un = False
+        for _ in range(len(tris)):
+            vid = next(
+                (k for k in range(3) if surface.ith_vertex_of_triangle(cur_t, k) == i),
+                -1,
+            )
+            # vid == -1 is a data-integrity error: vertex i was not found in a
+            # triangle reported to contain it. Should never occur in a valid
+            # Triangulation; treat conservatively as an open boundary.
+            assert vid != -1, f"Vertex {i} not found in any slot of triangle {cur_t}"
+            # NEIGHBOUR_UNASSIGNED signals a normal open (boundary) edge.
+            if surface.ith_neighbour_of_triangle(cur_t, vid) == NEIGHBOUR_UNASSIGNED:
+                neigh_un = True
+                break
+            nxt = surface.ith_neighbour_of_triangle(cur_t, vid)
+            if nxt == start:
+                break
+            sum_tris += 1
+            cur_t = nxt
+        if is_non_manifold:
+            break
+        if not neigh_un and len(tris) != sum_tris:
+            is_non_manifold = True
+            break
+
+    return open_labels, is_non_manifold
+
+
+def minkowski_tensors(verts: Union[np.ndarray, Triangulation], faces=None, labels=None, center=None, center_per_label=True,
                       compute='standard', compute_eigensystems=True, return_count=False):
     """Compute Minkowski tensors on a triangulated surface.
 
     Parameters
     ----------
-    verts : (V, 3) array_like
-        Vertex positions.
-    faces : (F, 3) array_like
-        Triangle vertex indices.
+    verts : (V, 3) array_like or Triangulation
+        Vertex positions, or a ``Triangulation`` object returned by any parser
+        (``parse_obj_file``, ``parse_off_file``, ``parse_poly_file``,
+        ``parse_glb_file``). When a ``Triangulation`` is passed, ``faces``
+        may be omitted and ``labels`` defaults to the triangulation's own
+        label array (if any).
+    faces : (F, 3) array_like or None
+        Triangle vertex indices. Required when *verts* is an array; ignored
+        (may be ``None``) when *verts* is a ``Triangulation``.
     labels : (F,) array_like, 'auto', or None
         Per-face labels. If None, treat as a single body.
         If ``'auto'``, connected mesh components are detected automatically
@@ -237,6 +300,29 @@ def minkowski_tensors(verts, faces, labels=None, center=None, center_per_label=T
     form.  A future release may deprecate the flat-dict form in favour of
     always returning ``{label: dict}``; see issue #48.
     """
+    # Issue #90: accept Triangulation objects directly
+    if isinstance(verts, Triangulation):
+        tri = verts
+        tri._consolidate_lists()
+        if faces is None:
+            faces = tri._faces
+        if labels is None and tri._labels is not None:
+            raw_labels = tri._labels
+            unique_raw = np.unique(raw_labels)
+            # Use the triangulation's labels only when they carry meaningful
+            # per-body information: skip if all faces share a single default
+            # label (0 from from_arrays, or LABEL_UNASSIGNED from parsers).
+            has_meaningful_labels = not (
+                len(unique_raw) == 1 and unique_raw[0] in (0, LABEL_UNASSIGNED)
+            )
+            if has_meaningful_labels:
+                labels = raw_labels
+        verts = tri._verts
+    elif faces is None:
+        raise TypeError(
+            "faces must be provided when verts is not a Triangulation"
+        )
+
     verts = np.asarray(verts, dtype=np.float64)
     faces = np.asarray(faces, dtype=np.int64)
 
@@ -346,6 +432,24 @@ def minkowski_tensors(verts, faces, labels=None, center=None, center_per_label=T
     if labels is not None:
         face_labels = np.asarray(labels)
     surface = Triangulation.from_arrays(verts, faces, labels=face_labels)
+
+    # Issue #94: warn for open / non-manifold surfaces
+    _open_labels, _is_non_manifold = _get_open_and_nonmanifold(surface)
+    if _open_labels:
+        warnings.warn(
+            "Open surface detected"
+            f" (label{'s' if len(_open_labels) > 1 else ''} {sorted(_open_labels)}): "
+            "volume-dependent quantities (w000, w020) are unreliable for open meshes "
+            "and will be set to NaN.",
+            UserWarning,
+            stacklevel=2,
+        )
+    if _is_non_manifold:
+        warnings.warn(
+            "Non-manifold mesh detected: results may be unreliable.",
+            UserWarning,
+            stacklevel=2,
+        )
 
     # Collect all unique labels
     if labels is not None:
@@ -507,6 +611,14 @@ def minkowski_tensors(verts, faces, labels=None, center=None, center_per_label=T
 
         per_label[label] = out
 
+    # Issue #94: patch NaN for volume-dependent quantities on open surfaces
+    for lab in _open_labels:
+        if lab in per_label:
+            if 'w000' in per_label[lab]:
+                per_label[lab]['w000'] = float('nan')
+            if 'w020' in per_label[lab]:
+                per_label[lab]['w020'] = np.full((3, 3), np.nan)
+
     # Warn if any label has negative volume (likely inverted face winding)
     if 'w000' in wanted:
         for lab, out in per_label.items():
@@ -544,7 +656,7 @@ def minkowski_tensors_from_label_image(
     label_image, level=None, spacing=(1.0, 1.0, 1.0),
     center='centroid_mesh', center_per_label=True,
     compute='standard', compute_eigensystems=True, return_count=False,
-    autolabel=False,
+    autolabel=False, pad=True,
 ):
     """Compute Minkowski tensors for each label in a 3D label image.
 
@@ -609,6 +721,14 @@ def minkowski_tensors_from_label_image(
         components automatically (equivalent to calling
         ``minkowski_tensors(..., labels='auto')``). Results are keyed by
         0-based component index (``0``, ``1``, …).
+    pad : bool, optional
+        If True (default), apply a 1-voxel zero-padding on all six faces of
+        the label image before passing it to ``marching_cubes``. This ensures
+        that objects touching the array boundary produce closed (non-open)
+        surfaces. The resulting vertex coordinates are shifted back so that
+        the output is in the original image coordinate system. Set ``pad=False``
+        only if the image has already been padded, or if open surfaces at
+        the boundary are intentional.
 
     Returns
     -------
@@ -646,6 +766,13 @@ def minkowski_tensors_from_label_image(
         level = 0.5
     spacing = tuple(float(s) for s in spacing)
 
+    # Issue #99: pad to prevent open surfaces at image boundaries
+    if pad:
+        label_image = np.pad(label_image, pad_width=1, mode='constant', constant_values=0)
+        _pad_offset = np.array(spacing, dtype=np.float64)
+    else:
+        _pad_offset = np.zeros(3, dtype=np.float64)
+
     unique_labels = np.unique(label_image)
     unique_labels = unique_labels[unique_labels != 0]
 
@@ -657,11 +784,12 @@ def minkowski_tensors_from_label_image(
                                                 gradient_direction='ascent')
         except Exception as exc:
             raise RuntimeError(f"marching_cubes failed on binary mask: {exc}") from exc
+        verts = verts - _pad_offset
         faces = _ensure_outward_normals(verts, faces)
         # centroid_voxel is not supported by minkowski_tensors; pre-compute it here.
         if isinstance(center, str) and center == 'centroid_voxel':
             nz_coords = np.argwhere(binary > 0)
-            mt_center = (nz_coords.mean(axis=0) * np.array(spacing)
+            mt_center = (nz_coords.mean(axis=0) * np.array(spacing) - _pad_offset
                          if len(nz_coords) else np.zeros(3))
         else:
             mt_center = center
@@ -687,7 +815,7 @@ def minkowski_tensors_from_label_image(
             and center in ('centroid_mesh', 'centroid_voxel')):
         if center == 'centroid_voxel':
             nz_coords = np.argwhere(label_image != 0)
-            global_center = (nz_coords.mean(axis=0) * np.array(spacing)
+            global_center = (nz_coords.mean(axis=0) * np.array(spacing) - _pad_offset
                              if len(nz_coords) > 0 else np.zeros(3))
         else:  # centroid_mesh global: merge all label meshes
             label_meshes = {}
@@ -698,6 +826,7 @@ def minkowski_tensors_from_label_image(
                 try:
                     v, f, _, _ = marching_cubes(mask, level=level, spacing=spacing,
                                                 gradient_direction='ascent')
+                    v = v - _pad_offset
                     f = _ensure_outward_normals(v, f)
                     label_meshes[lab_int] = (v, f)
                     all_verts_list.append(v)
@@ -747,6 +876,7 @@ def minkowski_tensors_from_label_image(
                         stacklevel=2,
                     )
                     continue
+                verts = verts - _pad_offset
                 faces = _ensure_outward_normals(verts, faces)
 
             # Determine center for this entry
@@ -767,7 +897,7 @@ def minkowski_tensors_from_label_image(
                     label_center = centroid
             elif isinstance(center, str) and center == 'centroid_voxel':
                 voxel_coords = np.argwhere(mask > 0)  # (N, 3)
-                label_center = voxel_coords.mean(axis=0) * np.array(spacing)
+                label_center = voxel_coords.mean(axis=0) * np.array(spacing) - _pad_offset
             elif isinstance(center, str) and center == 'reference_centroid':
                 label_center = 'reference_centroid'
             else:
