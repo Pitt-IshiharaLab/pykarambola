@@ -6,7 +6,7 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 -->
 <p align="center">
-  <img src="assets/banner.png" alt="pykarambola" width="60%"/>
+  <img src="assets/banner.png" alt="pykarambola" width="75%"/>
 </p>
 
 **pykarambola** computes Minkowski tensors for 3D objects represented as triangulated meshes — a family of shape descriptors rooted in integral geometry that rigorously quantify size, shape, and orientation.
