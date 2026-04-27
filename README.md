@@ -23,6 +23,10 @@ Compared to the original C++ karambola, this Python port adds:
 
 - **OBJ and GLB parsers** — read Wavefront OBJ and binary glTF (`.glb`) meshes directly, in addition to the original `.poly` and `.off` formats.
 - **High-level API** — `minkowski_tensors()` accepts NumPy arrays and returns a plain dict, making it easy to integrate into pipelines without dealing with the lower-level triangulation types.
+- **`labels='auto'`** — pass `labels='auto'` to detect connected mesh components automatically and compute tensors for each body separately, without supplying a face-label array.
+- **`return_count=True`** — append the number of connected objects to the return value as a `(results, n_objects)` tuple.
+- **Derived scalar quantities** — each rank-2 tensor (e.g. `w020`) additionally yields `{name}_beta` (anisotropy index: ratio of smallest to largest eigenvalue magnitude), `{name}_trace` (matrix trace), and `{name}_trace_ratio` (trace divided by the corresponding Minkowski scalar, e.g. `w020_trace_ratio = Tr(w020) / w000`).
+  These are pykarambola-specific extensions not present in C++ karambola; they are included in the `compute='all'` preset.
 - **Label-image API** — `minkowski_tensors_from_label_image()` extracts surfaces from a 3D integer label image via marching cubes and computes tensors for every label in one call.
 
 ### What's new in 0.3.0
@@ -181,9 +185,12 @@ Supported input formats: `.poly`, `.off`, `.obj`, `.glb`.
 | `w320` | rank-2 tensor | Minkowski tensor (topology) |
 | `w102` | rank-2 tensor | Minkowski tensor (surface, normal-normal) |
 | `w202` | rank-2 tensor | Minkowski tensor (curvature, normal-normal) |
-| `w103` | rank-3 tensor | Higher-order tensor |
-| `w104` | rank-4 tensor | Higher-order tensor |
-| `msm_ql`, `msm_wl` | arrays | Minkowski structure metrics (spherical) |
+| `w103` | rank-3 tensor | Higher-order tensor (`compute='all'`) |
+| `w104` | rank-4 tensor | Higher-order tensor (`compute='all'`) |
+| `msm_ql`, `msm_wl` | arrays | Minkowski structure metrics (spherical, `compute='all'`) |
+| `{name}_beta` | scalar | Anisotropy index: min\|λ\| / max\|λ\| for each rank-2 tensor (`compute='all'`) |
+| `{name}_trace` | scalar | Trace of each rank-2 tensor matrix (`compute='all'`) |
+| `{name}_trace_ratio` | scalar | Trace divided by corresponding Minkowski scalar, e.g. `Tr(w020)/w000` (wX20 family only; `compute='all'`) |
 
 Rank-2 tensors additionally yield `{name}_eigvals` and `{name}_eigvecs` entries.
 
