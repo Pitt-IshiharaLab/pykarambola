@@ -29,12 +29,6 @@ Compared to the original C++ karambola, this Python port adds:
   These are pykarambola-specific extensions not present in C++ karambola; they are included in the `compute='all'` preset.
 - **Label-image API** — `minkowski_tensors_from_label_image()` extracts surfaces from a 3D integer label image via marching cubes and computes tensors for every label in one call.
 
-### What's new in 0.3.0
-
-- **`Triangulation` input** — `minkowski_tensors()` now accepts a `Triangulation` object directly (returned by any parser), so there is no need to unpack vertices and faces manually. Per-body labels embedded in the triangulation are extracted automatically.
-- **Surface quality checks** — open surfaces (meshes with boundary edges) now emit a `UserWarning` and set `w000` and `w020` to `NaN` for the affected labels, matching C++ karambola's behaviour. Non-manifold meshes also emit a warning (without aborting).
-- **Boundary padding** — `minkowski_tensors_from_label_image()` gains a `pad=True` default that adds a 1-voxel zero border before marching cubes, preventing open surfaces from objects that touch the array boundary.
-
 ## Requirements
 
 - Python ≥ 3.9
