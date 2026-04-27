@@ -128,6 +128,16 @@ print(result[1]["w000"])   # volume of label 1
 print(result[2]["w100"])   # surface area of label 2
 ```
 
+The `center` argument controls the reference point for position-dependent tensors:
+
+| Value | Behaviour |
+|-------|-----------|
+| `None` (default for mesh API) | Use the array origin `(0, 0, 0)` |
+| `'centroid_mesh'` (default for label-image API) | Shift each object to its volume-weighted centre of mass |
+| `'centroid_voxel'` | Use the mean voxel coordinate (label-image API only) |
+| `'reference_centroid'` | Reproduce the C++ karambola `--reference_centroid` flag |
+| `(3,)` array | Apply an explicit fixed shift |
+
 ### Multi-label meshes
 
 Pass per-face integer labels to compute tensors for multiple bodies in a single mesh:
@@ -137,6 +147,14 @@ result = pk.minkowski_tensors(verts, faces, labels=face_labels)
 # result is dict[int, dict]
 print(result[1]["w000"])
 print(result[2]["w000"])
+```
+
+Or let pykarambola detect connected components automatically:
+
+```python
+result = pk.minkowski_tensors(verts, faces, labels="auto")
+# bodies are numbered 1, 2, … by connected component
+print(result[1]["w000"])
 ```
 
 ## File I/O
@@ -166,8 +184,11 @@ python -m pykarambola [options] <surface_file>
 ```
 
 Supported input formats: `.poly`, `.off`, `.obj`, `.glb`.
+Run `python -m pykarambola --help` for the full list of options.
 
 ## Computed quantities
+
+All quantities below are returned by `compute='standard'` unless noted `(compute='all')`.
 
 | Name | Type | Description |
 |------|------|-------------|
@@ -199,7 +220,7 @@ Rank-2 tensors additionally yield `{name}_eigvals` and `{name}_eigvecs` entries.
 If you use pykarambola in published work, please cite both pykarambola and the original karambola package.
 
 > Ishihara, K., & Khurana, Y.
-> *pykarambola: A Python Package for Minkowski Tensor-based 3D Shape Analysis* (v0.3.0).
+> *pykarambola: Minkowski tensor morphometry of 3D biological structures* (v0.3.0).
 > https://doi.org/10.5281/zenodo.XXXXXXX
 
 > Schaller, F. M., Kapfer, S. C., & Schröder-Turk, G. E.

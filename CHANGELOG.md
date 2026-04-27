@@ -9,17 +9,6 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-### Changed
-- Dependency lower bounds added: `numpy>=1.22`, `scipy>=1.8`; `scikit-image>=0.19` in the `dev` and `notebooks` extras. These are conservative floors matching the oldest versions shipped with Python 3.9 in mainstream distributions as of early 2022. The package does not use any API introduced after these versions; the pins are a statement of tested compatibility. `[build-system]` numpy requirement updated to match. (#64)
-
-### Fixed
-- `np.asarray` calls for `labels` and face-index arrays now specify `dtype=np.int64` explicitly, preventing silent coercion when callers pass float-dtype label arrays. (#64)
-
-### Documentation
-- Added `Examples` sections to `parse_obj_file`, `parse_off_file`, `parse_poly_file`, and `parse_glb_file` docstrings (numpydoc conformance). (#64)
-- Added `Notes` section to `calculate_eigensystem` clarifying its role relative to the high-level API. (#64)
-- Improved error message in `parse_poly_file` to report the actual token count when vertex coordinates are missing. (#64)
-
 ---
 
 ## [0.3.0] - Unreleased
@@ -32,6 +21,16 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 - `minkowski_tensors` now emits a `UserWarning` for **open surfaces** (meshes with boundary edges) and sets `w000` and `w020` to `NaN` for the affected labels, matching C++ karambola's behaviour. (#94)
 - `minkowski_tensors` now emits a `UserWarning` for **non-manifold meshes** (more permissive than the C++ CLI, which aborts). (#94)
 - `minkowski_tensors_from_label_image` now pads the label image with a 1-voxel zero border by default (`pad=True`). Callers whose inputs already include padding, or who intentionally want open surfaces at the boundary, should pass `pad=False` to restore prior behaviour. (#99)
+- Dependency lower bounds added: `numpy>=1.22`, `scipy>=1.8`; `scikit-image>=0.19` in the `dev` and `notebooks` extras. These are conservative floors matching the oldest versions shipped with Python 3.9 in mainstream distributions as of early 2022. The package does not use any API introduced after these versions; the pins are a statement of tested compatibility. `[build-system]` numpy requirement updated to match. (#64)
+
+### Fixed
+- `np.asarray` calls for `labels` and face-index arrays now specify `dtype=np.int64` explicitly, preventing silent coercion when callers pass float-dtype label arrays. (#64)
+
+### Documentation
+- Added `Examples` sections to `parse_obj_file`, `parse_off_file`, `parse_poly_file`, and `parse_glb_file` docstrings (numpydoc conformance). (#64)
+- Added `Notes` section to `calculate_eigensystem` clarifying its role relative to the high-level API. (#64)
+- Improved error message in `parse_poly_file` to report the actual token count when vertex coordinates are missing. (#64)
+- README and manuscript: documented `labels='auto'`, `return_count`, `_beta`/`_trace`/`_trace_ratio` derived quantities, `compute_eigensystems`, and `center_per_label` — all previously undocumented. Added `labels='auto'` code example, `center` argument reference table, quantities-table preset annotation, and CLI `--help` note. (#95)
 
 ---
 
@@ -43,7 +42,7 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 - `return_count=False` flag in both `minkowski_tensors` and `minkowski_tensors_from_label_image`; when `True`, returns `(results, n_objects)` where `n_objects` is the total number of connected components (#80)
 - `labels='auto'` option in `minkowski_tensors()` to automatically detect connected mesh components and return results keyed by 1-based component index
 - `autolabel=False` parameter in `minkowski_tensors_from_label_image()`: when `True`, treats the label image as binary, builds one mesh from all non-zero voxels, and detects connected components automatically (#80)
-- `_label_mesh_components()` public helper function that returns per-face component labels for a triangular mesh using scipy-based connected components detection
+- `_label_mesh_components()` internal helper that returns per-face component labels for a triangular mesh using SciPy-based connected-components detection
 
 ### Changed
 - `center='centroid'` in `minkowski_tensors` renamed to `center='reference_centroid'` to match the C++ `--reference_centroid` flag (#73)
