@@ -34,7 +34,7 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [0.2.0] - Unreleased
+## [0.2.0] - 2026-03-19
 
 ### Added
 - `center='centroid_mesh'` option in `minkowski_tensors` (volume-weighted center of mass = w010/w000), consistent with the existing option in `minkowski_tensors_from_label_image` (#73)
