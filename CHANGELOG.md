@@ -21,7 +21,7 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 - `minkowski_tensors` now emits a `UserWarning` for **open surfaces** (meshes with boundary edges) and sets `w000` and `w020` to `NaN` for the affected labels, matching C++ karambola's behaviour. (#94)
 - `minkowski_tensors` now emits a `UserWarning` for **non-manifold meshes** (more permissive than the C++ CLI, which aborts). (#94)
 - `minkowski_tensors_from_label_image` now pads the label image with a 1-voxel zero border by default (`pad=True`). Callers whose inputs already include padding, or who intentionally want open surfaces at the boundary, should pass `pad=False` to restore prior behaviour. (#99)
-- Dependency lower bounds added: `numpy>=1.22`, `scipy>=1.8`; `scikit-image>=0.19` in the `dev` and `notebooks` extras. These are conservative floors matching the oldest versions shipped with Python 3.9 in mainstream distributions as of early 2022. The package does not use any API introduced after these versions; the pins are a statement of tested compatibility. `[build-system]` numpy requirement updated to match. (#64)
+- Dependency lower bounds added: `numpy>=1.22`, `scipy>=1.8`; `scikit-image>=0.19` in the `dev` and `notebooks` extras. (#64)
 
 ### Fixed
 - `np.asarray` calls for `labels` and face-index arrays now specify `dtype=np.int64` explicitly, preventing silent coercion when callers pass float-dtype label arrays. (#64)
@@ -37,15 +37,30 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 ## [0.2.0] - 2026-03-19
 
 ### Added
-- `center='centroid_mesh'` option in `minkowski_tensors` (volume-weighted center of mass = w010/w000), consistent with the existing option in `minkowski_tensors_from_label_image` (#73)
+- `compute_eigensystems=False` parameter in `minkowski_tensors` and `minkowski_tensors_from_label_image`: skips eigendecomposition for rank-2 tensors (`*_eigvals` / `*_eigvecs` keys are omitted), reducing runtime for batch jobs that do not need eigensystems (#51)
+- `{name}_beta` anisotropy index (ratio of smallest to largest eigenvalue magnitude) for each rank-2 tensor (#1)
+- `{name}_trace` (matrix trace) and `{name}_trace_ratio` (trace divided by the corresponding Minkowski scalar, e.g. `Tr(w020)/w000`) for each rank-2 tensor; `_trace_ratio` is defined only for the wX20 family (#2)
+- `center='centroid_mesh'` option in `minkowski_tensors` (volume-weighted center of mass via divergence theorem), consistent with the existing option in `minkowski_tensors_from_label_image` (#73)
 - `center_per_label=True` boolean parameter in both `minkowski_tensors` and `minkowski_tensors_from_label_image` to control whether the centroid is computed independently per label (`True`, default) or from the full mesh (`False`) (#73)
 - `return_count=False` flag in both `minkowski_tensors` and `minkowski_tensors_from_label_image`; when `True`, returns `(results, n_objects)` where `n_objects` is the total number of connected components (#80)
-- `labels='auto'` option in `minkowski_tensors()` to automatically detect connected mesh components and return results keyed by 1-based component index
+- `labels='auto'` option in `minkowski_tensors()` to automatically detect connected mesh components and return results keyed by 1-based component index (#80)
 - `autolabel=False` parameter in `minkowski_tensors_from_label_image()`: when `True`, treats the label image as binary, builds one mesh from all non-zero voxels, and detects connected components automatically (#80)
-- `_label_mesh_components()` internal helper that returns per-face component labels for a triangular mesh using SciPy-based connected-components detection
 
 ### Changed
+- All API symbols and documentation renamed from "Minkowski functionals" to "Minkowski tensors" throughout the codebase (#3)
+- Eigenvalues and eigenvectors are now sorted by ascending eigenvalue magnitude, matching C++ karambola behaviour (#59)
+- `minkowski_tensors_from_label_image` now uses `gradient_direction='ascent'` in marching cubes and computes centroid references from mesh geometry rather than voxel coordinates (#4)
 - `center='centroid'` in `minkowski_tensors` renamed to `center='reference_centroid'` to match the C++ `--reference_centroid` flag (#73)
+- Prerequisite scalars and vectors are now skipped in non-centroid mode; only quantities that are actually needed are computed (#47)
+
+### Fixed
+- Zero-denominator guards added to `get_ref_vec`, `calculate_w300`, and `calculate_w320` to prevent silent `ZeroDivisionError` on flat, open, or toroidal surfaces (#42, #43, #49)
+- Degenerate (zero-area) triangles now emit a `UserWarning` instead of producing spurious normals that corrupt dihedral-angle calculations (#44)
+- Unknown names in `compute=[…]` now raise `ValueError` instead of being silently ignored (#45)
+- `center` argument now validated for shape `(3,)` before use; invalid shapes raise `ValueError` (#46)
+- `minkowski_tensors` return type is now consistently `dict[int, dict]` whenever `labels` is provided, even for a single unique label (#48)
+- `minkowski_tensors_from_label_image` now enforces integer dtype on the input array, emitting a `UserWarning` when conversion is required (#52)
+- `_EXTRA` derived quantities (`_beta`, `_trace`, `_trace_ratio`) dependency-chain bug fixed: parent tensors are now correctly promoted into `wanted` before computation (#53)
 
 ---
 
