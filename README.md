@@ -6,16 +6,13 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 -->
 <p align="center">
-  <img src="assets/banner.png" alt="pykarambola" width="60%"/>
+  <img src="assets/banner.png" alt="pykarambola" width="75%"/>
 </p>
 
-**pykarambola** computes shape descriptors for 3D objects represented as triangulated meshes.
-Given a mesh — a cell, a grain, a pore, a particle — it returns scalar, vector, and tensor quantities that rigorously characterize its size, shape, and orientation.
-These descriptors are useful whenever you need to compare or classify 3D shapes in a principled, rotation-aware way.
-
-Technically, these descriptors are **Minkowski tensors**: a family of quantities rooted in integral geometry that includes volume, surface area, integrated mean curvature, and Euler characteristic (the Minkowski functionals), as well as higher-rank tensors that capture anisotropy and preferred orientation.
+**pykarambola** computes Minkowski tensors for 3D objects represented as triangulated meshes — a family of shape descriptors rooted in integral geometry that rigorously quantify size, shape, and orientation.
+Given a mesh, it returns scalar, vector, and tensor quantities including volume, surface area, integrated mean curvature, and Euler characteristic (the Minkowski functionals), as well as higher-rank tensors that capture anisotropy and preferred orientation independently of coordinate frame.
 pykarambola is a Python implementation of [karambola](https://github.com/morphometry/karambola), the reference C++ package for Minkowski tensor computation on 3D triangulated surfaces.
-Minkowski tensors are widely used in bioimage analysis, structural biology, computational physics, and materials science.
+Minkowski tensors are widely applicable to analyzing 3D structures in biomedical imaging, computational physics, and materials science.
 
 ## New in pykarambola
 
@@ -23,13 +20,11 @@ Compared to the original C++ karambola, this Python port adds:
 
 - **OBJ and GLB parsers** — read Wavefront OBJ and binary glTF (`.glb`) meshes directly, in addition to the original `.poly` and `.off` formats.
 - **High-level API** — `minkowski_tensors()` accepts NumPy arrays and returns a plain dict, making it easy to integrate into pipelines without dealing with the lower-level triangulation types.
+- **`labels='auto'`** — pass `labels='auto'` to detect connected mesh components automatically and compute tensors for each body separately, without supplying a face-label array.
+- **`return_count=True`** — append the number of connected objects to the return value as a `(results, n_objects)` tuple.
+- **Derived scalar quantities** — each rank-2 tensor (e.g. `w020`) additionally yields `{name}_beta` (anisotropy index: ratio of smallest to largest eigenvalue magnitude), `{name}_trace` (matrix trace), and `{name}_trace_ratio` (trace divided by the corresponding Minkowski scalar, e.g. `w020_trace_ratio = Tr(w020) / w000`).
+  These are pykarambola-specific extensions not present in C++ karambola; they are included in the `compute='all'` preset.
 - **Label-image API** — `minkowski_tensors_from_label_image()` extracts surfaces from a 3D integer label image via marching cubes and computes tensors for every label in one call.
-
-### What's new in 0.3.0
-
-- **`Triangulation` input** — `minkowski_tensors()` now accepts a `Triangulation` object directly (returned by any parser), so there is no need to unpack vertices and faces manually. Per-body labels embedded in the triangulation are extracted automatically.
-- **Surface quality checks** — open surfaces (meshes with boundary edges) now emit a `UserWarning` and set `w000` and `w020` to `NaN` for the affected labels, matching C++ karambola's behaviour. Non-manifold meshes also emit a warning (without aborting).
-- **Boundary padding** — `minkowski_tensors_from_label_image()` gains a `pad=True` default that adds a 1-voxel zero border before marching cubes, preventing open surfaces from objects that touch the array boundary.
 
 ## Requirements
 
@@ -102,6 +97,8 @@ result = pk.minkowski_tensors(verts, faces, compute="all")
 result = pk.minkowski_tensors(verts, faces, compute=["w000", "w100", "w020"])
 ```
 
+If the mesh has boundary edges (open surface), `w000` and `w020` are set to `NaN` and a `UserWarning` is emitted. Non-manifold meshes also emit a `UserWarning` but are otherwise computed.
+
 ### From a 3D label image
 
 `minkowski_tensors_from_label_image()` takes a 3D integer array, runs marching cubes on each label, and returns a dict of results keyed by label value. Requires [scikit-image](https://scikit-image.org/).
@@ -124,6 +121,18 @@ print(result[1]["w000"])   # volume of label 1
 print(result[2]["w100"])   # surface area of label 2
 ```
 
+By default a 1-voxel zero border is added before running marching cubes (`pad=True`), so objects touching the array boundary produce closed surfaces. Pass `pad=False` to skip this.
+
+The `center` argument controls the reference point for position-dependent tensors:
+
+| Value | Behaviour |
+|-------|-----------|
+| `None` (default for mesh API) | Use the array origin `(0, 0, 0)` |
+| `'centroid_mesh'` (default for label-image API) | Shift each object to its volume-weighted centre of mass |
+| `'centroid_voxel'` | Use the mean voxel coordinate (label-image API only) |
+| `'reference_centroid'` | Reproduce the C++ karambola `--reference_centroid` flag |
+| `(3,)` array | Apply an explicit fixed shift |
+
 ### Multi-label meshes
 
 Pass per-face integer labels to compute tensors for multiple bodies in a single mesh:
@@ -133,6 +142,14 @@ result = pk.minkowski_tensors(verts, faces, labels=face_labels)
 # result is dict[int, dict]
 print(result[1]["w000"])
 print(result[2]["w000"])
+```
+
+Or let pykarambola detect connected components automatically:
+
+```python
+result = pk.minkowski_tensors(verts, faces, labels="auto")
+# bodies are numbered 1, 2, … by connected component
+print(result[1]["w000"])
 ```
 
 ## File I/O
@@ -162,8 +179,11 @@ python -m pykarambola [options] <surface_file>
 ```
 
 Supported input formats: `.poly`, `.off`, `.obj`, `.glb`.
+Run `python -m pykarambola --help` for the full list of options.
 
 ## Computed quantities
+
+All quantities below are returned by `compute='standard'` unless noted `(compute='all')`.
 
 | Name | Type | Description |
 |------|------|-------------|
@@ -181,9 +201,12 @@ Supported input formats: `.poly`, `.off`, `.obj`, `.glb`.
 | `w320` | rank-2 tensor | Minkowski tensor (topology) |
 | `w102` | rank-2 tensor | Minkowski tensor (surface, normal-normal) |
 | `w202` | rank-2 tensor | Minkowski tensor (curvature, normal-normal) |
-| `w103` | rank-3 tensor | Higher-order tensor |
-| `w104` | rank-4 tensor | Higher-order tensor |
-| `msm_ql`, `msm_wl` | arrays | Minkowski structure metrics (spherical) |
+| `w103` | rank-3 tensor | Higher-order tensor (`compute='all'`) |
+| `w104` | rank-4 tensor | Higher-order tensor (`compute='all'`) |
+| `msm_ql`, `msm_wl` | arrays | Minkowski structure metrics (spherical, `compute='all'`) |
+| `{name}_beta` | scalar | Anisotropy index: min\|λ\| / max\|λ\| for each rank-2 tensor (`compute='all'`) |
+| `{name}_trace` | scalar | Trace of each rank-2 tensor matrix (`compute='all'`) |
+| `{name}_trace_ratio` | scalar | Trace divided by corresponding Minkowski scalar, e.g. `Tr(w020)/w000` (wX20 family only; `compute='all'`) |
 
 Rank-2 tensors additionally yield `{name}_eigvals` and `{name}_eigvecs` entries.
 
@@ -192,7 +215,7 @@ Rank-2 tensors additionally yield `{name}_eigvals` and `{name}_eigvecs` entries.
 If you use pykarambola in published work, please cite both pykarambola and the original karambola package.
 
 > Ishihara, K., & Khurana, Y.
-> *pykarambola: A Python Package for Minkowski Tensor-based 3D Shape Analysis* (v0.3.0).
+> *pykarambola: Minkowski tensor morphometry of 3D structures* (v0.3.0).
 > https://doi.org/10.5281/zenodo.XXXXXXX
 
 > Schaller, F. M., Kapfer, S. C., & Schröder-Turk, G. E.
