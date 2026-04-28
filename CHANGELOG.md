@@ -21,7 +21,7 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 - `minkowski_tensors` now emits a `UserWarning` for **open surfaces** (meshes with boundary edges) and sets `w000` and `w020` to `NaN` for the affected labels, matching C++ karambola's behaviour. (#94)
 - `minkowski_tensors` now emits a `UserWarning` for **non-manifold meshes** (more permissive than the C++ CLI, which aborts). (#94)
 - `minkowski_tensors_from_label_image` now pads the label image with a 1-voxel zero border by default (`pad=True`). Callers whose inputs already include padding, or who intentionally want open surfaces at the boundary, should pass `pad=False` to restore prior behaviour. (#99)
-- Dependency lower bounds added: `numpy>=1.22`, `scipy>=1.8`; `scikit-image>=0.19` in the `dev` and `notebooks` extras. (#64)
+- Dependency lower bounds added: `numpy>=1.22`, `scipy>=1.8`; `scikit-image>=0.19` in the `dev` and `notebooks` extras; `numpy<2.0` upper bound added to the `[build-system]` requires. (#64)
 
 ### Fixed
 - `np.asarray` calls for `labels` and face-index arrays now specify `dtype=np.int64` explicitly, preventing silent coercion when callers pass float-dtype label arrays. (#64)

@@ -97,6 +97,8 @@ result = pk.minkowski_tensors(verts, faces, compute="all")
 result = pk.minkowski_tensors(verts, faces, compute=["w000", "w100", "w020"])
 ```
 
+If the mesh has boundary edges (open surface), `w000` and `w020` are set to `NaN` and a `UserWarning` is emitted. Non-manifold meshes also emit a `UserWarning` but are otherwise computed.
+
 ### From a 3D label image
 
 `minkowski_tensors_from_label_image()` takes a 3D integer array, runs marching cubes on each label, and returns a dict of results keyed by label value. Requires [scikit-image](https://scikit-image.org/).
@@ -118,6 +120,8 @@ result = pk.minkowski_tensors_from_label_image(
 print(result[1]["w000"])   # volume of label 1
 print(result[2]["w100"])   # surface area of label 2
 ```
+
+By default a 1-voxel zero border is added before running marching cubes (`pad=True`), so objects touching the array boundary produce closed surfaces. Pass `pad=False` to skip this.
 
 The `center` argument controls the reference point for position-dependent tensors:
 
