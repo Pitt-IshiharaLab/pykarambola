@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 title: "pykarambola: TENTATIVE TITLE"  # TODO: finalize title in M2 (#22–25)
 version: 0.3.0
-date-released: 2026-04-29  # TODO: update to actual release date (#11)
+date-released: YYYY-MM-DD  # TODO: update to actual release date (#11)
 repository-code: "https://github.com/Ishihara-SynthMorph/pykarambola"
 license: GPL-3.0-or-later
 authors:
