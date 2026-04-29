@@ -20,6 +20,13 @@ def parse_glb_file(filepath, with_labels=False):
     Returns
     -------
     Triangulation
+
+    Examples
+    --------
+    >>> import pykarambola as pk
+    >>> tri = pk.parse_glb_file("my_surface.glb")  # requires trimesh
+    >>> result = pk.minkowski_tensors(tri)
+    >>> result["w000"]   # enclosed volume
     """
     try:
         import trimesh

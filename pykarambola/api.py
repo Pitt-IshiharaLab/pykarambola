@@ -121,7 +121,7 @@ def _label_mesh_components(faces):
         Component label for each face, integers starting from 1.
         Empty array when ``faces`` is empty.
     """
-    faces = np.asarray(faces)
+    faces = np.asarray(faces, dtype=np.int64)
     if len(faces) == 0:
         return np.empty(0, dtype=np.intp)
     edges = np.concatenate([faces[:, [0, 1]], faces[:, [1, 2]], faces[:, [0, 2]]])
@@ -369,7 +369,7 @@ def minkowski_tensors(verts: Union[np.ndarray, Triangulation], faces=None, label
     # --- Special dispatch: centroid_mesh + per_label + labels provided ---
     # Each labeled sub-mesh gets its own center of mass shift before dispatch.
     if isinstance(center, str) and center == 'centroid_mesh' and labels is not None and center_per_label:
-        face_labels_arr = np.asarray(labels)
+        face_labels_arr = np.asarray(labels, dtype=np.int64)
         per_label_out = {}
         n_objects = 0
         for lab in sorted(set(int(x) for x in face_labels_arr)):
@@ -430,7 +430,7 @@ def minkowski_tensors(verts: Union[np.ndarray, Triangulation], faces=None, label
     # Build triangulation
     face_labels = None
     if labels is not None:
-        face_labels = np.asarray(labels)
+        face_labels = np.asarray(labels, dtype=np.int64)
     surface = Triangulation.from_arrays(verts, faces, labels=face_labels)
 
     # Issue #94: warn for open / non-manifold surfaces
@@ -634,7 +634,7 @@ def minkowski_tensors(verts: Union[np.ndarray, Triangulation], faces=None, label
     result = per_label[0] if labels is None else per_label
 
     if return_count:
-        face_labels_arr = np.asarray(labels) if labels is not None else None
+        face_labels_arr = np.asarray(labels, dtype=np.int64) if labels is not None else None
         if labels is not None:
             n_objects = sum(
                 _count_mesh_components(faces[face_labels_arr == lab])
