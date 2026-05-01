@@ -1,5 +1,6 @@
 # pykarambola
-[![CI](https://github.com/Ishihara-SynthMorph/pykarambola/actions/workflows/ci.yml/badge.svg)](https://github.com/Ishihara-SynthMorph/pykarambola/actions/workflows/ci.yml)
+<!-- CI badge disabled: GitHub Actions disabled at org level -->
+<!-- [![CI](https://github.com/Ishihara-SynthMorph/pykarambola/actions/workflows/ci.yml/badge.svg)](https://github.com/Ishihara-SynthMorph/pykarambola/actions/workflows/ci.yml) -->
 [![PyPI version](https://img.shields.io/pypi/v/pykarambola)](https://pypi.org/project/pykarambola/)
 [![Python versions](https://img.shields.io/pypi/pyversions/pykarambola)](https://pypi.org/project/pykarambola/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
