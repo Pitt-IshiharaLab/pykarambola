@@ -86,7 +86,7 @@ Initial Python port of [karambola](https://github.com/morphometry/karambola).
 
 ---
 
-[Unreleased]: https://github.com/Pitt-IshiharaLab/pykarambola/compare/v0.3.0...HEAD
-[0.3.0]: https://github.com/Pitt-IshiharaLab/pykarambola/compare/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/Pitt-IshiharaLab/pykarambola/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/Pitt-IshiharaLab/pykarambola/releases/tag/v0.1.0
+[Unreleased]: https://github.com/Ishihara-SynthMorph/pykarambola/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/Ishihara-SynthMorph/pykarambola/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/Ishihara-SynthMorph/pykarambola/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/Ishihara-SynthMorph/pykarambola/releases/tag/v0.1.0
