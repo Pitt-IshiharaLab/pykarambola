@@ -221,8 +221,6 @@ If you use pykarambola in published work, please cite both pykarambola and the o
 > *karambola — 3D Minkowski Tensor Package* (v2.0).
 > https://github.com/morphometry/karambola
 
-**Note:** Version, DOI, and release year will be updated after v1.0.0 is released (see [`CITATION.cff`](CITATION.cff) for machine-readable metadata).
-
 ## Contributing
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for development setup, Git workflow, versioning, and release instructions.
