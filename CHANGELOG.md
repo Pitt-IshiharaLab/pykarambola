@@ -11,7 +11,7 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [0.3.0] - Unreleased
+## [0.3.0] - 2026-04-30
 
 ### Added
 - `minkowski_tensors` now accepts a `Triangulation` object as its first argument; `faces` may be omitted. Works with objects returned by all four parsers (`parse_obj_file`, `parse_off_file`, `parse_poly_file`, `parse_glb_file`). Labels embedded in the triangulation are extracted automatically when they carry meaningful per-body information. (#90)
