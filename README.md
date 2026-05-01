@@ -4,9 +4,6 @@
 [![PyPI version](https://img.shields.io/pypi/v/pykarambola)](https://pypi.org/project/pykarambola/)
 [![Python versions](https://img.shields.io/pypi/pyversions/pykarambola)](https://pypi.org/project/pykarambola/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-
-> **Note:** Version, DOI, and release year will be updated after v1.0.0 is released (see [CITATION.cff](CITATION.cff) for machine-readable metadata).
-
 <p align="center">
   <img src="assets/banner.png" alt="pykarambola" width="75%"/>
 </p>
