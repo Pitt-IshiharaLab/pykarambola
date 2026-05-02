@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
-title: "pykarambola: TENTATIVE TITLE"  # TODO: finalize title in M2 (#22–25)
+title: "pykarambola: Minkowski tensors on 3D triangulated surfaces"
 version: 0.3.0
 date-released: 2026-04-30
 repository-code: "https://github.com/Ishihara-SynthMorph/pykarambola"
