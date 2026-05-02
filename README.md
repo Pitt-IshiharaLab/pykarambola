@@ -215,7 +215,7 @@ If you use pykarambola in published work, please cite both pykarambola and the o
 
 > Ishihara, K., & Khurana, Y.
 > *pykarambola: Minkowski tensor morphometry of 3D structures* (v0.3.0).
-> https://doi.org/10.5281/zenodo.XXXXXXX
+> https://doi.org/10.5281/zenodo.19935286
 
 > Schaller, F. M., Kapfer, S. C., & Schröder-Turk, G. E.
 > *karambola — 3D Minkowski Tensor Package* (v2.0).
